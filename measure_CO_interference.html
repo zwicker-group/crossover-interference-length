@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Measure Crossover Interference</title>
+<style>
+body {
+    font: 13px "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    background:#DDDED6;
+}
+.body {
+    margin:10px;
+    max-width:800px;
+}
+h2 {
+    margin-top:40px;
+}
+a {
+    color:#116656;
+}
+.form li {
+    padding: 0;
+    display: block;
+    list-style: none;
+    margin: 10px 0 0 0;
+}
+.form label{
+    margin:0 10px 3px 0;
+    padding:0;
+    font-weight: bold;
+}
+textarea {
+    white-space: pre;
+    overflow: auto;
+}
+.form input[type=text],
+.form input[type=number],
+textarea, 
+select
+{
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    border:1px solid #116656;
+    padding:7px;
+    margin:3px 0;
+    -webkit-transition: all 0.30s ease-in-out;
+    -moz-transition: all 0.30s ease-in-out;
+    -ms-transition: all 0.30s ease-in-out;
+    -o-transition: all 0.30s ease-in-out;
+    outline: none;
+}
+.form input:disabled,
+.form textarea:disabled
+{
+    background:#DDDED6;
+    color:black;
+}
+.form input[type=text]:focus,
+.form input[type=number]:focus,
+.form textarea:focus,
+.form select:focus{
+    -moz-box-shadow: 0 0 8px #116656;
+    -webkit-box-shadow: 0 0 8px #116656;
+    box-shadow: 0 0 8px #116656;
+    border: 1px solid #116656;
+}
+.form input[type=submit], .form input[type=button]{
+    width:100%;
+    background: #116656;
+    padding: 8px 15px 8px 15px;
+    border: none;
+    color: #fff;
+}
+.form input[type=submit]:hover, .form input[type=button]:hover{
+    background: #199981;
+    box-shadow:none;
+    -moz-box-shadow:none;
+    -webkit-box-shadow:none;
+}
+</style>
+<script src='https://cdn.plot.ly/plotly-2.29.1.min.js'></script>
+<script>
+// load local plotly.js if CDN was not available
+ if (typeof Plotly === 'undefined') {
+    document.write('<script src="plotly-2.29.1.min.js">\x3C/script>');
+}
+
+const BOOTSTRAP_REPETITIONS = 1000;
+const EXAMPLE_LENGTH = 30.427671;
+const EXAMPLE_POSITIONS = "4.726061682473167713e-02, 6.515538603003825369e-01;3.769934938497264687e-01;7.777351740131541180e-02, 3.401247831291458468e-01, 8.984242007875004044e-01;1.778567278448620059e-01;3.032704836331377996e-01, 7.661779963376099678e-01;1.793117849867641861e-02, 8.289569385708160931e-01;1.386475159403426083e-01;1.785756129675518389e-02, 5.902749014211440270e-01;8.804124377445781205e-03, 6.020753445112509983e-01;3.768401465889387736e-01;8.063786906332726101e-01;;5.307748003453830465e-01;;;3.514465665150645624e-01, 8.692387268154700974e-01, 9.425156299343450117e-01;1.601328606451673728e-02;3.366282946861099412e-01, 7.658667336057367603e-01;;6.581210734137358243e-01;2.177601105257119529e-01, 5.513646608049627140e-01, 7.969606020782860067e-01;3.053759027432628725e-01, 9.648437437094676827e-01;3.619085732851522186e-02;5.089194963360817864e-02;5.125659305307987967e-01;3.130047153461071874e-01, 8.669987426904939287e-01;8.308536496270122473e-01, 9.506230200793219787e-01;3.040157263433011514e-01, 5.680689133256371370e-01, 8.598856284465545841e-01;;;6.624271374565605663e-01;7.378544844920927881e-01;2.478431556592024521e-01;3.751698577258838485e-02;8.291114361003838751e-02, 9.301111149782053111e-01;1.123396529428755952e-01, 2.234840287316108010e-01, 3.579827223713573647e-01, 9.472560354685050088e-01;6.578956864624966316e-01;3.800875854086893657e-02;1.507054220482402507e-01, 8.128217240156172529e-01;1.470976204521207142e-01;;5.469199565093234572e-01, 9.442659775044893733e-01;6.515603346703729981e-01;7.727279061220295731e-01;8.438044765240166889e-01;;6.589486753685486198e-01;8.061729404133495258e-01;2.304511738673656884e-01, 9.943597227668198313e-01;2.593402400071961322e-01;2.525432196240060545e-01;2.368282968486152273e-01, 6.349616110940597968e-01;6.977705753424243706e-01;2.588150765794727248e-01;3.565954489254205551e-01;4.125139252360129904e-01, 7.564217287612976515e-01;2.736263153364580925e-01, 8.711289470692648029e-01;2.302046712678075258e-01;1.447804861568274537e-01;;1.038574230673126597e-01;;3.850631551787187662e-02, 5.719777731263099296e-01;1.325478213564225960e-01;1.409350718955782178e-01, 6.020693959784172433e-01, 9.652565094449720995e-01;3.038955889854337220e-02, 7.430236444977994514e-01, 9.949922391365413343e-01;2.746478690399932754e-01, 5.718495181573378661e-01, 8.669523539938368550e-01;8.749482666616187343e-01;;;3.813874055625223747e-01;;3.403904623525080275e-01, 6.386652629443771989e-01, 9.360532227392626137e-01;2.326044770235619064e-01;2.528357494071761247e-01, 5.621445032713808798e-01;8.021384876943096209e-01;4.099250810224680519e-01, 8.168760270873181017e-01;7.916903991764602522e-02, 9.548698124151533406e-01;3.795250218132041886e-01;;;3.861762867095546170e-01;1.787658838561781705e-01, 5.675001711435621043e-01;2.316338966593927129e-01, 3.596444663806178665e-01, 6.315213379295445684e-01, 8.694874149257103557e-01;8.595012907823277315e-01;;2.091733212180452717e-01, 4.416934342427983329e-01;8.415639172646504074e-01;;;2.909642673604562538e-02, 1.428307312774612370e-01, 8.711973223320313986e-01;;8.362478679357353284e-02;2.539341903624500185e-01;8.143160053229181461e-01;1.941060490630387367e-02;7.658971171339403750e-01;1.463812494883358073e-01, 3.765938740431366005e-01;6.887098260001562888e-01, 8.714102699480351655e-01;3.880470674209669513e-01, 5.898039978150152463e-01, 9.646943073625320331e-01;4.162059593716522232e-01;8.174792773327936857e-01;9.925181917472423176e-01;3.619846553487449103e-01;;3.742690658118395519e-01;8.660185986630394295e-01;2.092808877813882168e-02, 3.248861537907387076e-01, 9.317510367454677755e-01;4.691874051089878206e-02, 7.058970928139719492e-01;2.333319562972795691e-01;6.237413142793610810e-01;8.521316173032107422e-01;3.973184474092677360e-02, 7.368185688612185480e-01;2.666256480819712005e-01;2.670192864909049502e-01, 6.304550880677000091e-01, 7.766376532729042381e-01;7.030225875651147094e-01;3.262382125795957322e-01;5.451945369068832842e-02, 4.283381235455057112e-01, 8.529938423483021115e-01;4.416934342427983329e-01, 8.880634012376432684e-01;4.024270375475008099e-01, 7.005287719852104633e-01, 8.267166257976169552e-01;4.173869074632758358e-01;5.892103933948806410e-03;;;6.719904392288190698e-01;;9.836045617819386688e-01;;1.485358508050123316e-02, 4.284625497626814994e-01;3.603959205421933820e-01;3.944151690084989337e-01, 6.580451721066656878e-01;4.287512672264663927e-01, 9.458747434202243731e-01;2.231821324740891621e-01, 3.467850858516250412e-01;7.302432052719382005e-02;3.170667580834563570e-01;;;2.734463968668519041e-01, 5.820432986803361075e-01;4.174639590391259758e-01;9.406344310742680015e-02, 3.657003028591968574e-01;4.087544689174534840e-01, 6.989664440633659437e-01;2.359733677940714092e-01;4.284413848171291783e-01;1.056446285356509897e-02, 8.770959827980262524e-01;5.544762857466153383e-01;1.458599969744644662e-02, 5.852751760067341769e-01;5.303513864074579365e-01, 5.800422746782033512e-01, 9.484922950560363830e-01;2.598005282757264167e-01, 9.712841972032628668e-01;;9.613880076460666890e-01;4.284637164638726570e-01, 8.811294660048086813e-01;6.271904280810713939e-01;8.450433160000974525e-03, 6.519105422166554531e-01;4.060440577262716122e-01, 8.906872793517454090e-01;3.442003661732769837e-01, 8.810724291057308033e-01, 9.083290830901912249e-01;2.598550674483104950e-01, 8.884901509550304777e-01;7.695544624496565289e-01;8.235448089339471034e-01;5.472657108721861174e-01;3.685403657742980510e-01, 7.429907796755131910e-01;2.333379048301133796e-01, 7.704205655437776912e-01;2.177632491162402872e-01, 9.620803708571714630e-01;8.051922541163273328e-01;4.108309998487890136e-01, 8.014938113403422548e-01;6.639447856525069191e-01;2.188097472198907711e-01;8.483297982287241884e-03, 1.306494999239343757e-02, 6.452739843282780940e-01, 8.089535837297571197e-01;;8.692522178250186027e-01;;3.472164859413657267e-01, 9.471926392263148031e-01;;2.776570378981684240e-01, 8.966677403604108587e-01;8.940037178658860606e-01;6.983970774496675027e-01, 9.714968983330996011e-01;7.756590538920972167e-01;4.094555906036975723e-01, 8.035543371032243254e-01;8.432558804780031503e-01;8.922975241844833816e-01;2.326972708492871800e-01;3.842570961149146536e-01, 6.624898599698939572e-01, 9.807958026100651594e-01;2.648175898838922016e-01;2.336861404870586578e-01;1.624233087047641799e-01, 7.695145316905787070e-01;;;2.254523522355687537e-01, 7.051963655055952795e-01;5.431334195772000162e-02, 3.319531422565992762e-01, 6.938431962143931653e-01;4.272679463373980080e-01, 8.813278052073062474e-01;1.409830052388827415e-01, 7.862794033759600287e-01;3.914469990161258406e-01;5.556315828444444715e-01;;6.122921797070831479e-02, 9.682804181759426809e-01;1.710953000642080057e-01;6.070519823880047294e-01, 6.676820582160232220e-01, 8.419141741081662689e-01;1.518716302670684339e-02, 3.237940557461660984e-01;6.901190202825580045e-01;1.792747956292810030e-01, 7.679232498602999168e-01, 9.499009306364593064e-01;2.059339507121659418e-01, 6.746347428299721560e-01, 7.198739101655201589e-01;2.168169558557406576e-02, 5.735343004070210249e-01, 9.661000508385937380e-01;1.466022489857998073e-02, 4.279567272828735947e-01, 8.409899988730653586e-01, 9.168630914932661691e-01;3.730666569912630126e-01;1.231752834451246836e-01, 6.195847851779389126e-01, 8.767685505735881568e-01;1.616952214318342074e-01, 8.808523498232908588e-01;;9.796156432741763842e-01;3.636807923945280518e-01, 6.717453498166192638e-01;3.812610238884205360e-01, 6.458282988533694535e-01, 9.186445291852932682e-01;;2.302046712678075258e-01, 8.187807078629186774e-01;;4.815541090870872898e-02;;;9.369193422657948744e-01;9.951285624193847434e-01;;3.059529432929651849e-01, 8.049087292944636651e-01;2.030801174365267844e-02, 7.164468322271527745e-01;1.410936610955206005e-01;8.752809079603891540e-01;;2.179560177313603908e-01;8.751921893726273549e-02, 7.500820881098655413e-01;1.731322288846885715e-01, 6.984184067193313084e-01;7.391532365392015080e-01;8.643402579185243129e-01;2.271706566039839448e-01, 5.646707399984705056e-01, 8.749012042361047348e-01;2.771421775922318087e-01, 7.610310858165911796e-01;8.930703733453672077e-01;2.842256149016466060e-01;3.805388194186798412e-01;;6.471515680579036089e-02, 6.530157697577314568e-01;3.770082172901107476e-01, 8.023089739599196246e-01;2.416504371958011835e-02, 7.286274884462896617e-01;;3.038955889854337220e-02;6.928331780634805308e-03, 5.667273712799116847e-01;9.781480482025720624e-01;;1.257084710821278484e-01;3.836050744731662743e-01;3.148302083324090728e-02, 1.353639258160770908e-01, 8.380687927117392855e-01;2.615276732813365812e-01, 9.635585812663743921e-01;6.318150344139057684e-02, 6.515357517833028078e-01;3.751392934411575814e-02, 7.608370847706352746e-01;2.300971868665203091e-01;2.810007213499843837e-01, 7.118433744074595948e-01;2.010301741464208883e-02, 8.577750988565638890e-01;3.109385368337918565e-01, 8.200445574687593719e-01;3.558230598720487081e-01, 9.656320393368260646e-01;5.667190400474620970e-01, 9.684714613878927514e-01;3.631877050333560120e-01, 8.018853792654719870e-01;2.194341295460963959e-01, 3.302934522987316934e-01;2.957577002853751247e-01, 7.724775419058528270e-01;1.482747562243590944e-01, 4.546556816655471511e-01;2.097653152618877970e-01, 3.616952641561032022e-01, 9.504314181653930049e-01;1.005375501792431098e-01, 5.241532616807905720e-01;7.554747453395299628e-01, 9.574114956087175221e-01;2.766852086707523584e-01, 5.406278055260950177e-01, 8.717371763353166658e-01;;8.276485899955997594e-01;;;3.806151479684397043e-01;1.988022678436348473e-02;2.376656432232358840e-01;3.032478726354048137e-01;8.692522178250186027e-01;;8.458522836006739931e-01;1.391257319694300665e-01, 8.349971313939867912e-01;2.623569020448525690e-01;1.160684628146531616e-01, 6.477823261596328264e-01;1.406060621596703919e-01;4.187987309314604167e-01;2.238249191007750938e-01, 6.969497106761802785e-01;1.334836964682574734e-01, 7.661779963376099678e-01, 9.740491968642622789e-01;1.591518456999222939e-02, 5.748853239539760684e-01, 8.279466575013251228e-01;5.086573993783487929e-02, 8.162922985462804926e-01;4.346087480701366079e-01;6.164408869808012392e-01;;;8.854351685345882572e-01;;;3.122797337988832828e-02;2.180318533087859667e-01, 5.753524809703641774e-01;;8.259302856271846793e-02, 9.367545416144404946e-01;1.188484159697927728e-01, 8.898709500309768261e-01;6.497579949513717645e-01, 8.221756111402677147e-01;8.185638657654739081e-01;8.486200767715675886e-01;9.652173674416291149e-01;2.616154552216632401e-01;2.578558181465811505e-01;2.948836932014941570e-01;;4.114154514159168441e-01;3.583971642127983248e-01, 8.315147255273005467e-01;3.351918061687994554e-01, 8.598502494653633699e-01;9.900322308598644705e-01;2.572441545066002644e-01, 8.749482666616187343e-01;3.225558078368864212e-01;3.653055141814830487e-01, 7.835869199453353584e-01;3.533052201070532305e-01;4.952275183992886631e-02, 7.727985654899450774e-01;8.209234942759833231e-01;;7.843988453799176364e-02, 9.461046821493502845e-01;1.537478829713914176e-02;5.679836126793931239e-01;8.053583857929844103e-02, 9.437353749486775412e-01;2.579623823328443533e-01, 5.128324313747181229e-01, 9.350393265393202036e-01;3.839927314844439055e-01;;8.432071090817303549e-01;8.461279372976000523e-01;3.720525471699756559e-01;1.854037070402135001e-01, 6.589810965157339995e-01;3.779670649127236937e-01, 8.221714701726596797e-01;3.955544773702857619e-01;2.041058449724923174e-01, 2.601249205041030188e-01;;;4.278510011495786358e-01;;;3.126234176779419394e-01, 8.199929925625921712e-01;7.032760739394087190e-01;9.462372259776308248e-02, 3.435438584832865017e-01, 8.199913493214778804e-01;6.306927171652408903e-01, 9.360532227392626137e-01;6.983780651499749137e-01;4.159601140685398324e-01, 6.969535722927989729e-01, 9.517323885880060175e-01;6.811014224519518212e-01;1.573633420711036471e-02, 4.260558259618358878e-01;;2.532565012944960614e-01, 8.032794721620331035e-01;;3.841316182234256749e-01;;7.710318019410687951e-01;;7.509687481503267426e-02, 2.524836685660233893e-01, 9.693893430095258390e-01;3.772698705727428603e-01;1.453881074236671178e-01;;2.590928664898473621e-01;2.462782642812195721e-01;5.787391516097305511e-01, 8.983763003090181609e-01, 9.906304199227079499e-01;2.691407272018946362e-01;2.422114890094611839e-01, 8.922428371201990283e-01;8.314416177301247046e-01;3.364863186538332718e-01, 8.749482666616187343e-01;2.566783208612976042e-01;8.100313362794018257e-01;4.228154859436991098e-01;6.697216162222866531e-01;9.789278647057805260e-01;5.815745641524782128e-01;;;8.590462444529520791e-01;1.345650805807648009e-01, 6.424284658526774328e-01;4.948158865001531237e-02, 7.682267400617024400e-01;6.901936398615589330e-02, 9.600155890998033348e-01;4.136770112967240176e-01;;5.790998594667334798e-02, 2.093560496299569085e-01, 3.074160851811497674e-01;;9.351698327486189510e-02;;2.225833189796222189e-01;2.109760553149138754e-02;;;3.623479266618861994e-01, 6.509849537941961861e-01;;2.225139906370093290e-01;3.687308995815026802e-01;3.031775747805344756e-01, 6.172294126619155552e-01, 7.563293950430843848e-01;7.667537880240653525e-01;8.852666377259041930e-01;4.032585997133990990e-02, 5.561127895723599890e-01;8.286333350981743839e-01;7.159764215933582809e-01;4.324873566563803284e-01;7.404058956730537044e-01;1.375731156025710999e-01;9.708451067451071559e-01;8.038667665362887460e-01;8.645329443715886741e-01;5.545394847998718069e-01;1.393838358512552722e-01, 5.240885344132977242e-01, 9.938045373239379199e-01;8.735600237034245596e-01;2.311833199458479884e-02, 7.924882584671039121e-01;3.513472818869377567e-01;7.466130746582609889e-01;9.086827578752249002e-02, 4.189462282538811699e-01;2.223951678720333391e-01, 4.000478380353199026e-01;8.690462704161617813e-01;8.639903297232313095e-01;1.561495784544272292e-01, 6.962422296468238070e-01;1.449204902997669464e-01, 5.607017375730137809e-01;5.170026979718559401e-01;4.177634890294430053e-02, 7.620607078339975970e-01;;6.803408483021918807e-01, 9.351404187326727291e-01;;8.660419984165071972e-01;5.490382093325513191e-01;4.416905585708482684e-01;8.114806256449927924e-01;;5.708565404167805779e-01;3.720734984941831414e-02, 3.430693233142951271e-01, 7.517853732544959033e-01;3.078564245025523505e-01, 8.461100588342762574e-01;2.641366471985319153e-01, 8.776591872575459918e-01;1.323746730402073912e-01, 3.804165129825414771e-01;1.630160750719304164e-01;;1.771445142810963366e-02;6.889981490860737079e-01;3.856400478367207896e-01, 9.259755700658128807e-01;;7.026938736126074891e-01;5.551245936634453537e-01;;7.867912401182464155e-01;3.015689403240885968e-01;8.837803425704189308e-01;2.581860603133246945e-01, 6.671732286049760763e-01;;;;9.507146800686783195e-01;2.140398619401399638e-01, 8.028952002274509780e-01;4.146469179320362852e-01, 6.580362493074149999e-01;2.523067407952452323e-01, 8.761170383365852743e-01;3.661564665925302609e-01, 9.706244030310438031e-01;7.452729293674826838e-01;4.071634171409307390e-01;3.899216111545310559e-01, 7.599741531318647825e-01;;1.429187104067215774e-01, 7.575716031634495140e-01;7.411089728162237877e-01;7.680506174790703300e-01;9.271059556283490766e-01;5.696894119829283287e-01, 5.835100556989721854e-01, 8.275664608047064164e-01;8.102325675862606102e-01;8.740460286953938285e-01;4.280126960752270726e-01, 9.652123719886416264e-01;;8.016335196998811696e-01;8.050260567100255837e-01;2.933604086885256979e-01;8.655007476582746717e-01;2.662791542606071094e-01, 4.263908663926332387e-01;3.122797337988832828e-02;1.277421134203797770e-01, 3.417332203966580439e-01, 8.676398696436543601e-01;2.913447762728866297e-01;3.296978102596153648e-01;3.804218699485741317e-01, 8.417572281493381769e-01;2.255016987662315786e-01, 9.124294462103261782e-01;;1.757818401546408504e-01, 7.724775419058528270e-01;2.523074473889244107e-01;;7.155828653464801903e-02, 5.521343878077293876e-01;5.704456151113241891e-01;8.056766815968269269e-02;6.540264123402675933e-01, 7.050555890393320757e-01;1.015300185150549428e-01, 9.933421785716035624e-01;3.984489972959152915e-02, 6.014478071621058852e-01, 9.519739121669877902e-01;3.135086480986336577e-01;5.834012567047934805e-01;;8.660657761154313405e-01;6.959126612089371333e-01;4.735668070027443388e-02, 3.123686495755788051e-01;;3.687435361056717320e-01, 7.652442245744014437e-01;5.510447381924170607e-01;3.221053132853973766e-01;6.421490491335996031e-02, 9.471938223599171147e-01;1.365581019986708833e-01;8.152335418639172770e-01;;2.052029549024636246e-01, 9.115217033863683982e-01;2.164207704230797225e-02;1.251477314842795729e-01, 5.913342989675417494e-01;5.423706106195246290e-01;1.849204298284939652e-01, 5.293211070936056917e-01;3.500576826928357699e-01;2.944169634277957193e-01, 6.917592871304544255e-01, 8.459245369124702707e-01;5.965398567639305094e-01;;2.752607979756321321e-01;3.295588413585778809e-01;;4.186000959455622450e-01;8.183496035565785975e-01;8.446451915429216140e-01;3.225320137055511238e-01, 6.927705870094362783e-01;8.502213330754102572e-01;";
+
+function parseCSV(csv_string, factor=1) {
+    // parse a string with comma-separated values
+    // The function also checks whether the values are in the interval [0, 1]
+    var warnedNaN = false, warnedValue = false;
+    var positions = [];
+    for (let line of csv_string.trim().split("\n")) {
+        var sample = [];
+        for (let element of line.split(",")) {
+            element_trimmed = element.trim();
+            if (element_trimmed.length > 0 && element_trimmed != "") {
+                let value = parseFloat(element_trimmed);
+                if (!warnedNaN && isNaN(value)) {
+                    window.alert(`Encountered invalid value: ${element_trimmed}`);
+                    warnedNaN = true;
+                }
+                if (!warnedValue && (value < 0 || value > 1)) {
+                    window.alert(`Crossover positions must be normalized (within 0 and 1). Found ${value} instead.`);
+                    warnedValue = true;
+                }
+                sample.push(factor * value);
+            }
+        }
+        positions.push(sample);
+    }
+    return positions;
+}
+
+function randomInt(max) {
+    // provide a random integer smaller than max
+    return Math.floor(Math.random() * max);
+}
+
+function format(number, n=3) {
+    const factor = 10 ** n;
+    return Math.round(number * factor) / factor;
+}
+
+function getRandomSubarray(arr, size) {
+    // function taken from https://stackoverflow.com/a/11935263/932593
+    var shuffled = arr.slice(0),
+        i = arr.length,
+        temp, index;
+    while (i--) {
+        index = Math.floor((i + 1) * Math.random());
+        temp = shuffled[index];
+        shuffled[index] = shuffled[i];
+        shuffled[i] = temp;
+    }
+    return shuffled.slice(0, size);
+}
+
+function arrayStats(data) {
+    // calculate mean length and standard deviation of nested arrays
+    // The standard deviation is calculated using degrees of freedom equal to n-1
+    var count = 0,
+        mean = 0,
+        variance = 0;
+    for (let line of data) {
+        count += 1;
+        const delta = line.length - mean;
+        mean += delta / count;
+    }
+    for (let line of data) {
+        variance += (line.length - mean) * (line.length - mean) / count;
+    }
+    return [mean, Math.sqrt(variance / (count))];
+}
+
+function getDistances(positions) {
+    // get all distances between all positions of each sample
+    var distances = [];
+    for (let sample of positions) {
+        if (sample.length > 1) {
+            var line = [];
+            for (let i = 0; i < sample.length; i++) {
+                for (let j = i + 1; j < sample.length; j++) {
+                    line.push(Math.abs(sample[i] - sample[j]));
+                }
+            }
+            distances.push(line);
+        } else {
+            distances.push([]);
+        }
+    }
+    return distances;
+}
+
+function getDnoInt(positions) {
+    // estimate the distance of the null hypothesis
+    const posFlat = new Float64Array(positions.flat());
+    var count = 0,
+        dnoInt = 0;
+    if (posFlat.length < 3000) {
+        // sample all pairs
+        for (let i = 0; i < posFlat.length; i++) {
+            for (let j = i + 1; j < posFlat.length; j++) {
+                const dist = Math.abs(posFlat[i] - posFlat[j]);
+                count += 1;
+                dnoInt += (dist - dnoInt) / count;
+            }
+        }
+    } else {
+        // sample randomly
+        for (let n = 0; n < 1000000; n++) {
+            const i = randomInt(posFlat.length);
+            let j = randomInt(posFlat.length - 1);
+            if (j >= i) {
+                j += 1;
+            }
+            const dist = Math.abs(posFlat[i] - posFlat[j]);
+            count += 1;
+            dnoInt += (dist - dnoInt) / count;
+        }
+    }
+    return dnoInt;
+}
+
+function calcInterferenceLength(positions, distances, length) {
+    // calculate many quantities and particular the interference length
+    var result = {};
+    // count the number of pairs
+    result["samples"] = positions.length;
+    const [countMean, countStd] = arrayStats(positions);
+    result["countMean"] = countMean;
+    result["countStd"] = countStd;
+
+    const [pairMean, pairStd] = arrayStats(distances);
+    result["pairMean"] = pairMean;
+    result["pairStd"] = pairStd;
+
+    const numPairsNoInt = 0.5 * countMean ** 2;
+    result["numPairsNoInt"] = numPairsNoInt;
+    const numPairsObs = pairMean;
+    result["numPairsObs"] = numPairsObs;
+    const numPairsMis = numPairsNoInt - numPairsObs;
+    result["numPairsMis"] = numPairsMis;
+
+    // determine the distances
+    result["dnoInt"] = getDnoInt(positions);
+    var count = 0,
+        dObs = 0;
+    for (let sample of distances) {
+        for (let dist of sample) {
+            count += 1;
+            dObs += (dist - dObs) / count;
+        }
+    }
+
+    result["dObs"] = dObs;
+    result["dInt"] = (numPairsObs * dObs + numPairsMis * length) / (numPairsObs + numPairsMis);
+    if (numPairsObs > 0) {
+        result["Lint"] = result["dInt"] - result["dnoInt"];
+    } else if (numPairsNoInt > 0) {
+        result["Lint"] = length - result["dnoInt"];
+    } else {
+        result["Lint"] = length;
+    }
+    result["LintNorm"] = result["Lint"] * result["countMean"] / length;
+    return result;
+}
+
+function calcInterferenceLengthErr(positions, length) {
+    // use bootstrapping to estimate error
+    const sample_size = Math.ceil(positions.length / 2);
+    var mean = 0,
+        mean2 = 0;
+
+    for (let count = 1; count <= BOOTSTRAP_REPETITIONS; count++) {
+        const sub_pos = getRandomSubarray(positions, sample_size);
+        const sub_dists = getDistances(sub_pos);
+        const Lint = calcInterferenceLength(sub_pos, sub_dists, length)["Lint"];
+        const delta = Lint - mean;
+        mean += delta / count;
+        mean2 += delta * (Lint - mean);
+    }
+    return Math.sqrt(mean2 / (2 * BOOTSTRAP_REPETITIONS));
+}
+
+function calcCoC(positions, length, bins) {
+    // calculate the coefficient of coincidence curve
+    
+    // determine statistics between all interval pairs
+    let obs1 = new Uint32Array(bins);
+    let obs2 = Array(bins).fill().map(_ => Array(bins).fill(0));
+    var count1 = 0;
+    var count2 = 0;
+    for (let sample of positions) {
+        for (let i = 0; i < sample.length; i++) {
+            ni = Math.floor(sample[i] / length * bins);
+            obs1[ni]++; // obtain CO frequency
+            count1++;
+            for (let j = i + 1; j < sample.length; j++) {
+                nj = Math.floor(sample[j] / length * bins);
+                obs2[ni][nj]++; // obtain double frequency
+                count2++;
+            }
+        }
+    }
+
+    // average statistics for each separation distance
+    let dists = new Float64Array(bins);
+    let coc = new Float64Array(bins);
+    let n = new Uint32Array(bins);
+    for (i=0; i<bins; i++) {
+        dists[i] = (i) * length / bins;
+        for (j=0; j<bins; j++) {
+            d = Math.abs(i - j);
+            rAB = obs2[i][j] / count2;
+            if (rAB > 0) {
+                rA = obs1[i] / count1;
+                rB = obs1[j] / count1;
+                coc[d] += rAB / rA / rB;
+            }
+            n[d]++;
+        }
+    }
+    for (d=0; d<bins; d++) {
+        if (n[d] > 0) {
+            coc[d] /= n[d];
+        }
+    }
+    return [dists, coc];
+}
+
+
+function calcCoC_mwhite(positions, length, bins) {
+    // calculate the coefficient of coincidence curve
+    
+    let samplesize = positions.length;
+    let pattern_per_interval = Array(samplesize).fill().map(_ => Array(bins).fill(0.));
+    let observed_pattern_frequency = Array(bins).fill().map(_ => Array(bins).fill(0));
+    let observed_pattern_frequency_per_interval = new Float32Array(bins);
+    var sample_idx = 0;
+    for (let sample of positions) {
+        for (i = 0; i < sample.length; i++) {
+            ni = Math.floor(sample[i] / length * bins);
+            pattern_per_interval[sample_idx][ni] = 1.0;
+        }
+        for (i = 0; i < bins; i++) {
+            observed_pattern_frequency_per_interval[i] += pattern_per_interval[sample_idx][i] / samplesize;
+            for (j = i+1; j < bins; j++) {
+                observed_pattern_frequency[i][j - i] += pattern_per_interval[sample_idx][i] * pattern_per_interval[sample_idx][j] / samplesize;
+            }
+        }
+        sample_idx++;
+    }
+
+    // average statistics for each separation distance
+    let dists = new Float64Array(bins);
+    let coc = new Float64Array(bins);
+    let n = new Uint32Array(bins);
+    for (i=0; i<bins; i++) {
+        dists[i] = i * length / bins;
+        for (j=i; j<bins; j++) {
+            d = Math.abs(j - i);
+            rAB = observed_pattern_frequency[i][d];
+            if (rAB > 0) {
+                rA = observed_pattern_frequency_per_interval[i];
+                rB = observed_pattern_frequency_per_interval[j];
+                coc[d] += rAB / rA / rB;
+            }
+            n[d]++;
+        }
+    }
+    for (let d=0; d<bins; d++) {
+        if (n[d] > 0) {
+            coc[d] /= n[d];
+        }
+    }
+    return [dists, coc];
+}
+
+function calcQuantities() {
+    // read data
+    const length = parseFloat(document.getElementById("length").value);
+    const positions = parseCSV(document.getElementById("data").value, length);
+    const distances = getDistances(positions);
+
+    // calculate quantities
+    let result = calcInterferenceLength(positions, distances, length);
+    let LintErr = calcInterferenceLengthErr(positions, length);
+    let LintNormErr = (result["Lint"] * result["countStd"] + result["countMean"] * LintErr) / length;
+    let Lint = `${format(result["Lint"])} ± ${format(LintErr)}`;
+    let LintNorm = `${format(result["LintNorm"])} ± ${format(LintNormErr)}`;
+
+    // set output
+    document.getElementById("output_Lint").value = Lint;
+    document.getElementById("output_data").value =
+        `Chromosome length: L = ${length}
+Number of samples: n = ${result["samples"]}
+Mean number of COs: N = ${format(result["countMean"])} ± ${format(result["countStd"])}
+Mean number of CO pairs: N_pairs = ${format(result["pairMean"])} ± ${format(result["pairStd"])}
+
+Interference length: L_int = ${Lint}
+Normalized interference length: L_int * <N> / L = ${LintNorm}
+Mean observed distance: d_Obs = ${format(result["dObs"])}
+Distance with interference: d_Int = ${format(result["dInt"])}
+Distance without interference: d_noInt = ${format(result["dnoInt"])}
+Mean number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
+Mean number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
+Mean number of missing CO pairs: N^pair_mis = ${format(result["numPairsMis"])}
+Ratio phi: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}`;
+
+    // calculate CoC curve
+    const bins = parseInt(document.getElementById("bins").value);
+    const [CoC_x, CoC_y] = calcCoC_mwhite(positions, length, bins);
+    let CoC_data = [];
+    for (i=0; i < bins; i++) {
+        CoC_data.push(`${CoC_x[i]}\t${CoC_y[i]}`);
+    }
+    document.getElementById("CoC_data").value = CoC_data.join("\n");
+    
+    // plot CoC curve
+    let CoC_curve = {"x": CoC_x, "y": CoC_y, "type": "scatter", "name": "CoC Curve"};
+    let Lint_label = {"x": [0], "y": [0], mode: "lines", line: {color: '#116656', width: 3}, name: "Lint"};
+    let layout = {
+        title: 'Coefficient of coincidence plot',
+        xaxis: {title: 'Distance'},
+        yaxis: {title: 'CoC'},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        shapes: [
+            {type: 'line', x0: result["Lint"], x1: result["Lint"], y0: 0, y1: 1, yref: 'paper', line: {color: '#116656', width: 3}},
+            {type: 'rect', x0: result["Lint"] - LintErr, x1: result["Lint"] + LintErr, y0: 0, y1: 1, yref: 'paper', fillcolor: '#116656', opacity: 0.2, line:{width: 0}},
+            {type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 1, y1: 1, line: {color: 'black', width: 0.5}},
+        ],
+    };
+    Plotly.newPlot('CoC_plot', [CoC_curve, Lint_label], layout);
+}
+
+function loadExample() {
+    document.getElementById("length").value = EXAMPLE_LENGTH;
+    document.getElementById("data").value = EXAMPLE_POSITIONS.replaceAll(";", "\n");
+}
+</script>
+</head>
+<body>
+  <div class="body">
+    <h1>Measure Crossover Interference</h1>
+    This webpage calculates quantities related to crossover interference for a single type of chromosomes from multiple samples of measured crossover positions.
+    Positions need to be specified in fractions of the total chromosome length, so they are numbers between 0 and 1.
+    The chromosome length can be specified in units of micrometer (µm) for cytological data, units of megabases (Mb) for genetic data, or left set to 1 to obtain results normalized to the chromosome length.
+    <h2>Input</h2>
+    <form id="input_form" action="javascript:calcQuantities()">
+    <ul class="form">
+        <li><label for="length">Chromosome length:</label><input type="text" id="length" name="length" value="1" required></li>
+        <li><label for="data">Observed normalized crossover positions (comma-separated positions; one line per sample):</label><br/>
+        <a href="javascript:loadExample()" style="display: block-inline; float: right;">Load example data (<i>A. thalania (wild-type, male, chromosome 1)</i>)</a>
+        <textarea name="data" id="data" cols="60" rows="30"></textarea></li>
+        <li><label for="bins">Bin count for calculating Coefficient of Coincidence</label><input type="number" id="bins" value="15" step="1" onchange="this.value = Math.max(1, Math.min(100, parseInt(this.value)));"></li>
+        <li><input type="submit" value="Calculate quantities"></li>
+    </ul>
+    </form>
+    <h2>Output</h2>
+    <form id="output_form">
+    <ul class="form">
+    <li>Several quantities below will be reported as mean ± standard error, where the standard error is determined using bootstrapping <span id="bootstrap_num">1000</span> times. Consequently, the standard error will change slightly with each calculation.</li>
+    <li><label for="output_Lint">Interference length:</label><input type="text" id="output_Lint" name="output_Lint" disabled></li>
+    <li><label for="output_data">Additional data:</label><textarea name="output_data" id="output_data" cols="60" rows="15" disabled></textarea></li>
+    <li><label for="CoC_data">Coefficient of Coincidence (CoC):</label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
+    </ul></form>
+    <div id='CoC_plot'></div>
+  </div>
+<script>document.getElementById("bootstrap_num").textContent = BOOTSTRAP_REPETITIONS.toString();</script>
+</body>
+</html>
