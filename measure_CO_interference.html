@@ -46,6 +46,7 @@ select
     border:1px solid #116656;
     padding:7px;
     margin:3px 0;
+    transition: all 0.30s ease-in-out;
     -webkit-transition: all 0.30s ease-in-out;
     -moz-transition: all 0.30s ease-in-out;
     -ms-transition: all 0.30s ease-in-out;
@@ -439,8 +440,9 @@ function loadExample() {
     <ul class="form">
         <li><label for="length">Chromosome length:</label><input type="text" id="length" name="length" value="1" required></li>
         <li><label for="data">Observed normalized crossover positions (comma-separated positions; one line per sample):</label><br/>
-        <a href="javascript:loadExample()" style="display: block-inline; float: right;">Load example data (<i>A. thalania (wild-type, male, chromosome 1)</i>)</a>
-        <textarea name="data" id="data" cols="60" rows="30"></textarea></li>
+        <textarea name="data" id="data" cols="60" rows="30"></textarea>
+        <div style="text-align:right; margin-bottom: 2em;">
+        <a href="javascript:loadExample()">Load example data (<i>A. thalania</i>, wild-type, male, chromosome 1)</a> from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a></div></li>
         <li><label for="bins">Bin count for calculating Coefficient of Coincidence</label><input type="number" id="bins" value="15" step="1" onchange="this.value = Math.max(1, Math.min(100, parseInt(this.value)));"></li>
         <li><input type="submit" value="Calculate quantities"></li>
     </ul>
