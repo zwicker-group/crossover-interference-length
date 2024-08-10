@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 ### Usage
 
-Exemplary data from A. thalania (genetic data) from [1, 2] for various genotypes (wild-type, HEI10oe, zyp1 and zyp1
+Exemplary data from A. thalania (genetic data) from [[1, 2]](#references) for various genotypes (wild-type, HEI10oe, zyp1 and zyp1
 HEI10oe), both male/female and all five chromosomes (index 1..5) is contained in the folder `data/`.
 The associated genetic chromosome lengths are stored in `data/chromosome_lengths.csv`, whereas the CO positions for the
 samples are stored in files following the scheme `data/A_thalania_[genotype]_[sex]_[chromosome_index].csv`.
@@ -66,8 +66,11 @@ https://github.com/mwhite4/MADpatterns/blob/master/interval_analysis.m
 while setting it to **mernst** uses an implementation that does not require pre-binning
 and is described in the publication in SI-1B.
 
+## References
+
 [1] Durand, S., Lian, Q., Jing, J. et al. Joint control of meiotic crossover patterning by the synaptonemal complex and
 HEI10 dosage. Nat Commun 13, 5999 (2022). https://doi.org/10.1038/s41467-022-33472-w
+
 [2] Singh, D. K., Lian, L., Durand, S. et al. Heip1 is required for efficient meiotic crossover implementation and is 
 conserved from plants to humans, Proceedings of the National Academy of Sciences 120, e2221746120 (2023). 
 https://doi.org/10.1073/pnas.2221746120
