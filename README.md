@@ -1,4 +1,10 @@
-# draft_interference_measures
+# Interference Length for measuring crossover interference
+
+This repository contains code for quantifying crossover (CO) inteference in meiosis
+based on the interference length <i>L</i><sub>int</sub>, which is defined in the
+pre-print [Interference Length reveals regularity of crossover placement across species](https://biorxiv.org/cgi/content/short/2024.04.22.590575v1)
+by M. Ernst, R. Mercier, and D. Zwicker.
+
 
 ## JavaScript version
 
@@ -40,24 +46,11 @@ Running the python script displays summary statistics for various genotypes and 
 python example.py
 ```
 
-The functions are implemented in the python script
-
-```
-measure_CO_interference.py
-```
-
+The functions are implemented in the python script `measure_CO_interference.py`.
 The summary statistics (mean number of COs, interference length, normalized interference
-length, gamma shape parameter and interference distance) can be used by calling the python function
-
-```
-get_interference_measures(positions, my_params)
-```
-
-and the coefficient of coincidence can be computed using
-
-```
-coefficient_of_coincidence(positions, my_params)
-```
+length, gamma shape parameter and interference distance) can be used by calling the
+python function `get_interference_measures(positions, my_params)`, and the coefficient
+of coincidence can be computed using `coefficient_of_coincidence(positions, my_params)`.
 
 The positions need to be specified in fractions of the total chromosome length, so they are numbers between 0 and 1. The
 chromosome length can be specified in units of micrometer (µm) for cytological data, units of megabases (Mb) for genetic
