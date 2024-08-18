@@ -5,6 +5,7 @@ based on the interference length <i>L</i><sub>int</sub>, which is defined in the
 pre-print [Interference Length reveals regularity of crossover placement across species](https://biorxiv.org/cgi/content/short/2024.04.22.590575v1)
 by M. Ernst, R. Mercier, and D. Zwicker.
 
+[**↪ Try it out online**](https://zwicker-group.github.io/crossover-interference-length/measure_CO_interference.html)
 
 ## JavaScript version
 
