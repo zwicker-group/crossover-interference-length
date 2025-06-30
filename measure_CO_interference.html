@@ -210,7 +210,7 @@ function getDnoInt(positions) {
     return dnoInt;
 }
 
-function calcInterferenceLength(positions, distances, length) {
+function calcInterferenceLength(positions, distances, length, scale_factor = 1) {
     // calculate many quantities and particular the interference length
     var result = {};
     // count the number of pairs
@@ -244,17 +244,18 @@ function calcInterferenceLength(positions, distances, length) {
     result["dObs"] = dObs;
     result["dInt"] = (numPairsObs * dObs + numPairsMis * length) / (numPairsObs + numPairsMis);
     if (numPairsObs > 0) {
-        result["Lint"] = result["dInt"] - result["dnoInt"];
+        Lint = result["dInt"] - result["dnoInt"];
     } else if (numPairsNoInt > 0) {
-        result["Lint"] = length - result["dnoInt"];
+        Lint = length - result["dnoInt"];
     } else {
-        result["Lint"] = length;
+        Lint = length;
     }
+    result["Lint"] = Lint * scale_factor;
     result["LintNorm"] = result["Lint"] * result["countMean"] / length;
     return result;
 }
 
-function calcInterferenceLengthErr(positions, length) {
+function calcInterferenceLengthErr(positions, length, scale_factor = 1) {
     // use bootstrapping to estimate error
     const sample_size = Math.ceil(positions.length / 2);
     var mean = 0,
@@ -263,7 +264,7 @@ function calcInterferenceLengthErr(positions, length) {
     for (let count = 1; count <= BOOTSTRAP_REPETITIONS; count++) {
         const sub_pos = getRandomSubarray(positions, sample_size);
         const sub_dists = getDistances(sub_pos);
-        const Lint = calcInterferenceLength(sub_pos, sub_dists, length)["Lint"];
+        const Lint = calcInterferenceLength(sub_pos, sub_dists, length, scale_factor)["Lint"];
         const delta = Lint - mean;
         mean += delta / count;
         mean2 += delta * (Lint - mean);
@@ -273,7 +274,7 @@ function calcInterferenceLengthErr(positions, length) {
 
 function calcCoC(positions, length, bins) {
     // calculate the coefficient of coincidence curve
-    
+
     // determine statistics between all interval pairs
     let obs1 = new Uint32Array(bins);
     let obs2 = Array(bins).fill().map(_ => Array(bins).fill(0));
@@ -316,7 +317,6 @@ function calcCoC(positions, length, bins) {
     }
     return [dists, coc];
 }
-
 
 function calcCoC_mwhite(positions, length, bins) {
     // calculate the coefficient of coincidence curve
@@ -370,10 +370,11 @@ function calcQuantities() {
     const length = parseFloat(document.getElementById("length").value);
     const positions = parseCSV(document.getElementById("data").value, length);
     const distances = getDistances(positions);
+    const scale_factor = (document.getElementById("genetic_data").checked ? 2 : 1);
 
     // calculate quantities
-    let result = calcInterferenceLength(positions, distances, length);
-    let LintErr = calcInterferenceLengthErr(positions, length);
+    let result = calcInterferenceLength(positions, distances, length, scale_factor);
+    let LintErr = calcInterferenceLengthErr(positions, length, scale_factor);
     let LintNormErr = (result["Lint"] * result["countStd"] + result["countMean"] * LintErr) / length;
     let Lint = `${format(result["Lint"])} ± ${format(LintErr)}`;
     let LintNorm = `${format(result["LintNorm"])} ± ${format(LintNormErr)}`;
@@ -394,7 +395,8 @@ Distance without interference: d_noInt = ${format(result["dnoInt"])}
 Mean number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
 Mean number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
 Mean number of missing CO pairs: N^pair_mis = ${format(result["numPairsMis"])}
-Ratio phi: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}`;
+Ratio phi: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
+Length scale factor: ${scale_factor}`;
 
     // calculate CoC curve
     const bins = parseInt(document.getElementById("bins").value);
@@ -404,7 +406,7 @@ Ratio phi: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}`;
         CoC_data.push(`${CoC_x[i]}\t${CoC_y[i]}`);
     }
     document.getElementById("CoC_data").value = CoC_data.join("\n");
-    
+
     // plot CoC curve
     let CoC_curve = {"x": CoC_x, "y": CoC_y, "type": "scatter", "name": "CoC Curve"};
     let Lint_label = {"x": [0], "y": [0], mode: "lines", line: {color: '#116656', width: 3}, name: "Lint"};
@@ -439,6 +441,7 @@ function loadExample() {
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
         <li><label for="length">Chromosome length:</label><input type="text" id="length" name="length" value="1" required></li>
+        <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data (lengths will be multiplied by two to corrected for sub-sampling)</label></li>
         <li><label for="data">Observed normalized crossover positions (comma-separated positions; one line per sample):</label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <div style="text-align:right; margin-bottom: 2em;">
