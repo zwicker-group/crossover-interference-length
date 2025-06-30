@@ -4,7 +4,7 @@ from scipy.stats import gamma
 import numpy as np
 
 default_parameters = {'length': 1, 'NUM_BOOTSTRAP_SAMPLES': 100, 'MAX_SIZE': 1e7, 'NUM_INTERVALS': 15,
-                      'COC_IMPLEMENTATION': 'mernst'}
+                      'COC_IMPLEMENTATION': 'mernst', 'GENETIC_DATA': False}
 
 
 def init_parameters(new_parameters):
@@ -274,8 +274,8 @@ def interference_distance(data_positions: np.array, parameters: dict):
             d_coc = get_x_from_linearization(coc_x[index_first_exceeds - 1], coc_x[index_first_exceeds],
                                             coc_y[index_first_exceeds - 1], coc_y[index_first_exceeds], 0.5)
     else:
-        d_coc = 1
-    return d_coc * parameters['length']
+        d_coc = parameters['length']
+    return d_coc
 
 
 def bootstrap_half_samples(measure_func, data_positions: np.array, parameters: dict):
@@ -310,9 +310,13 @@ def get_interference_measures(data_positions: np.array, parameters: dict):
     :return: Dictionary with results.
     """
     meanN, meanN_std = number_of_crossovers_per_chromosome(data_positions)
-    Lint, Lint_std = number_of_crossovers_per_chromosome(data_positions)
+    Lint, Lint_std = bootstrap_half_samples(interference_length, data_positions, parameters)
+
     LintNorm = Lint * meanN / parameters['length']
-    LintNorm_std = np.sqrt((Lint_std * meanN)**2 + (Lint * meanN_std)**2) / parameters['length']
+    LintNorm_std = np.sqrt((Lint_std * meanN) ** 2 + (Lint * meanN_std) ** 2) / parameters['length']
+    if parameters['GENETIC_DATA'] is True:
+        LintNorm *= 2
+        LintNorm_std *= 2
     gamma, gamma_std = bootstrap_half_samples(gamma_shape_parameter, data_positions, parameters)
     dCoC, dCoC_std = bootstrap_half_samples(interference_distance, data_positions, parameters)
     return {r'Mean number of CO per chromosome $\langle N \rangle$': (meanN, meanN_std),
