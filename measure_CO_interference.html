@@ -441,7 +441,7 @@ function loadExample() {
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
         <li><label for="length">Chromosome length:</label><input type="text" id="length" name="length" value="1" required></li>
-        <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data (lengths will be multiplied by two to corrected for sub-sampling)</label></li>
+        <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data (Measurements will be corrected for 50% random sub-sampling)</label></li>
         <li><label for="data">Observed normalized crossover positions (comma-separated positions; one line per sample):</label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <div style="text-align:right; margin-bottom: 2em;">
