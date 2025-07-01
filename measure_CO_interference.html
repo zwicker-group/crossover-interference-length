@@ -250,12 +250,12 @@ function calcInterferenceLength(positions, distances, length, scale_factor = 1) 
     } else {
         Lint = length;
     }
-    result["Lint"] = Lint * scale_factor;
-    result["LintNorm"] = result["Lint"] * result["countMean"] / length;
+    result["Lint"] = Lint;
+    result["LintNorm"] = result["Lint"] * result["countMean"] * scale_factor / length;
     return result;
 }
 
-function calcInterferenceLengthErr(positions, length, scale_factor = 1) {
+function calcInterferenceLengthErr(positions, length) {
     // use bootstrapping to estimate error
     const sample_size = Math.ceil(positions.length / 2);
     var mean = 0,
@@ -264,7 +264,7 @@ function calcInterferenceLengthErr(positions, length, scale_factor = 1) {
     for (let count = 1; count <= BOOTSTRAP_REPETITIONS; count++) {
         const sub_pos = getRandomSubarray(positions, sample_size);
         const sub_dists = getDistances(sub_pos);
-        const Lint = calcInterferenceLength(sub_pos, sub_dists, length, scale_factor)["Lint"];
+        const Lint = calcInterferenceLength(sub_pos, sub_dists, length)["Lint"];
         const delta = Lint - mean;
         mean += delta / count;
         mean2 += delta * (Lint - mean);
@@ -374,8 +374,8 @@ function calcQuantities() {
 
     // calculate quantities
     let result = calcInterferenceLength(positions, distances, length, scale_factor);
-    let LintErr = calcInterferenceLengthErr(positions, length, scale_factor);
-    let LintNormErr = (result["Lint"] * result["countStd"] + result["countMean"] * LintErr) / length;
+    let LintErr = calcInterferenceLengthErr(positions, length);
+    let LintNormErr = scale_factor * Math.sqrt( (result["Lint"] * result["countStd"]) ** 2 + (result["countMean"] * LintErr) ** 2 ) / length;
     let Lint = `${format(result["Lint"])} ± ${format(LintErr)}`;
     let LintNorm = `${format(result["LintNorm"])} ± ${format(LintNormErr)}`;
 
@@ -396,7 +396,7 @@ Mean number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
 Mean number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
 Mean number of missing CO pairs: N^pair_mis = ${format(result["numPairsMis"])}
 Ratio phi: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
-Length scale factor: ${scale_factor}`;
+Scale factor for sub-sampling: ${scale_factor}`;
 
     // calculate CoC curve
     const bins = parseInt(document.getElementById("bins").value);
