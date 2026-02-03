@@ -274,7 +274,6 @@ function calcInterferenceLengthErr(positions, length) {
 
 function calcCoC(positions, length, bins) {
     // calculate the coefficient of coincidence curve
-
     // determine statistics between all interval pairs
     let obs1 = new Uint32Array(bins);
     let obs2 = Array(bins).fill().map(_ => Array(bins).fill(0));
@@ -320,6 +319,7 @@ function calcCoC(positions, length, bins) {
 
 function calcCoC_mwhite(positions, length, bins) {
     // calculate the coefficient of coincidence curve
+    // Implementation based on the approach in https://github.com/mwhite4/MADpatterns/blob/master/interval_analysis.m
     
     let samplesize = positions.length;
     let pattern_per_interval = Array(samplesize).fill().map(_ => Array(bins).fill(0.));
@@ -346,7 +346,7 @@ function calcCoC_mwhite(positions, length, bins) {
     let n = new Uint32Array(bins);
     for (i=0; i<bins; i++) {
         dists[i] = i * length / bins;
-        for (j=i; j<bins; j++) {
+        for (j=i+1; j<bins; j++) {
             d = Math.abs(j - i);
             rAB = observed_pattern_frequency[i][d];
             if (rAB > 0) {
@@ -362,7 +362,7 @@ function calcCoC_mwhite(positions, length, bins) {
             coc[d] /= n[d];
         }
     }
-    return [dists, coc];
+    return [dists.subarray(1), coc.subarray(1)];
 }
 
 function calcQuantities() {
@@ -402,11 +402,11 @@ Scale factor for sub-sampling: ${scale_factor}`;
     const bins = parseInt(document.getElementById("bins").value);
     const [CoC_x, CoC_y] = calcCoC_mwhite(positions, length, bins);
     let CoC_data = [];
-    for (i=0; i < bins; i++) {
+    for (i=0; i < CoC_x.length; i++) {
         CoC_data.push(`${CoC_x[i]}\t${CoC_y[i]}`);
     }
     document.getElementById("CoC_data").value = CoC_data.join("\n");
-
+    
     // plot CoC curve
     let CoC_curve = {"x": CoC_x, "y": CoC_y, "type": "scatter", "name": "CoC Curve"};
     let Lint_label = {"x": [0], "y": [0], mode: "lines", line: {color: '#116656', width: 3}, name: "Lint"};
