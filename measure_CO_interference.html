@@ -180,6 +180,33 @@ function getDistances(positions) {
     return distances;
 }
 
+function shuffleInputData() {
+  const length = parseFloat(document.getElementById("length").value);
+  const positions = parseCSV(document.getElementById("data").value, 1);
+  const posLengths = new Float64Array(positions.map(l => l.length));
+  const posFlat = new Float64Array(positions.flat());
+
+    // Using the Fisher-Yates algorithm to shuffle the data
+    for (let i = posFlat.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [posFlat[i], posFlat[j]] = [posFlat[j], posFlat[i]];
+    }
+    // Slice the data to rows according to the length of the initial data
+    let index = 0;
+    var posShuffled = [];
+
+    for (let i = 0; i < posLengths.length; i++) {
+        const len = posLengths[i];
+        const chunk = posFlat.slice(index, index + len);
+        index += len;
+        posShuffled.push(chunk);
+    }
+    // Export data to field
+    const posCSV = posShuffled.map(row => row.join(',')).join('\n');
+    document.getElementById("data").value = posCSV
+}
+
+
 function getDnoInt(positions) {
     // estimate the distance of the null hypothesis
     const posFlat = new Float64Array(positions.flat());
@@ -448,6 +475,7 @@ function loadExample() {
         <a href="javascript:loadExample()">Load example data (<i>A. thalania</i>, wild-type, male, chromosome 1)</a> from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a></div></li>
         <li><label for="bins">Bin count for calculating Coefficient of Coincidence</label><input type="number" id="bins" value="15" step="1" onchange="this.value = Math.max(1, Math.min(100, parseInt(this.value)));"></li>
         <li><input type="submit" value="Calculate quantities"></li>
+        <li><input type="button" value="Shuffle input data" onclick="shuffleInputData()"></li>
     </ul>
     </form>
     <h2>Output</h2>
