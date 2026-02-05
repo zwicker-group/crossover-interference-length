@@ -19,6 +19,11 @@ h2 {
 a {
     color:#116656;
 }
+.misc_link {
+    margin: 0.5em 0;
+    padding-left: 2em;
+    text-indent: -2em;
+}
 .form li {
     padding: 0;
     display: block;
@@ -347,7 +352,7 @@ function calcCoC(positions, length, bins) {
 function calcCoC_mwhite(positions, length, bins) {
     // calculate the coefficient of coincidence curve
     // Implementation based on the approach in https://github.com/mwhite4/MADpatterns/blob/master/interval_analysis.m
-    
+
     let samplesize = positions.length;
     let pattern_per_interval = Array(samplesize).fill().map(_ => Array(bins).fill(0.));
     let observed_pattern_frequency = Array(bins).fill().map(_ => Array(bins).fill(0));
@@ -433,7 +438,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
         CoC_data.push(`${CoC_x[i]}\t${CoC_y[i]}`);
     }
     document.getElementById("CoC_data").value = CoC_data.join("\n");
-    
+
     // plot CoC curve
     let CoC_curve = {"x": CoC_x, "y": CoC_y, "type": "scatter", "name": "CoC Curve"};
     let Lint_label = {"x": [0], "y": [0], mode: "lines", line: {color: '#116656', width: 3}, name: "Lint"};
@@ -471,10 +476,10 @@ function loadExample() {
         <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data (Measurements will be corrected for 50% random sub-sampling)</label></li>
         <li><label for="data">Observed normalized crossover positions (comma-separated positions; one line per sample):</label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
-        <div style="line-height: 1.7em;">
-            <a href="javascript:loadExample()">Load example data (<i>A. thalania</i>, wild-type, male, chromosome 1)</a> from <a
-                href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a><br />
-            <a href="javascript:shuffleInputData()">Randomize input data by shuffling CO positions</a>
+        <div class="misc_link"><a href="javascript:loadExample()">Load example data (<i>A. thalania</i>, wild-type, male,
+                chromosome 1)</a> from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun.
+                (2022)</a></div>
+        <div class="misc_link"><a href="javascript:shuffleInputData()">Randomize input data by shuffling CO positions</a>
         </div>
         </li>
         <li><label for="bins">Bin count for calculating Coefficient of Coincidence</label><input type="number" id="bins" value="15" step="1" onchange="this.value = Math.max(1, Math.min(100, parseInt(this.value)));"></li>
