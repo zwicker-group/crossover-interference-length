@@ -129,7 +129,7 @@ def interference_length(data_positions: np.array, parameters: dict):
         if len(distances_observed) > 0:
             l_int = (np.mean(distances_observed) - 1) * fraction_observed_pairs + 1 - np.mean(distances_expected)
         elif len(distances_expected) > 0:
-            l_int =  1 - np.mean(distances_expected)
+            l_int = 1 - np.mean(distances_expected)
         else:
             l_int = 1
     return l_int * parameters['length']
@@ -162,10 +162,48 @@ def coefficient_of_coincidence_mwhite(data_positions: np.array, parameters: dict
     """
     number_of_samples = np.shape(data_positions)[0]
     num_of_intervals = parameters['NUM_INTERVALS']
+    pattern_per_interval = np.zeros((number_of_samples, num_of_intervals))
+    observed_pattern_frequency_per_interval_pair = np.zeros((num_of_intervals - 1, num_of_intervals - 1))
+    expected_pattern_frequency_per_interval_pair = np.zeros((num_of_intervals - 1, num_of_intervals - 1))
+    coc_x = parameters['length'] * np.linspace(0, 1 - 1 / num_of_intervals, num_of_intervals)[1:]
+    for i in np.arange(number_of_samples):
+        index_of_crossover = np.where(~np.isnan(data_positions[i, :]))[0]
+        for x_pos in data_positions[i, index_of_crossover]:
+            if x_pos * num_of_intervals < num_of_intervals:
+                pattern_per_interval[
+                    i, int(x_pos * num_of_intervals)] = 1.
+
+    observed_pattern_frequency_per_interval = np.mean(pattern_per_interval, axis=0)
+    for i in range(num_of_intervals - 1):
+        for j in range(i + 1, num_of_intervals):
+            observed_pattern_frequency_per_interval_pair[i, j - i - 1] = np.sum(
+                pattern_per_interval[:, i] * pattern_per_interval[:, j]) / number_of_samples
+            expected_pattern_frequency_per_interval_pair[i, j - i - 1] = \
+                observed_pattern_frequency_per_interval[i] * observed_pattern_frequency_per_interval[j]
+    np.seterr(invalid='ignore')
+    coc_per_distance = np.divide(observed_pattern_frequency_per_interval_pair, expected_pattern_frequency_per_interval_pair)
+    total_coc_per_distance = np.nansum(coc_per_distance, axis=0)
+    total_pairs_per_distance = np.copy(coc_per_distance)
+    total_pairs_per_distance[~np.isnan(total_pairs_per_distance)] = 1.
+    total_pairs_per_distance = np.nansum(total_pairs_per_distance, axis=0)
+    coc_y = total_coc_per_distance / total_pairs_per_distance
+    return coc_x, coc_y
+
+
+def coefficient_of_coincidence_total_average(data_positions: np.array, parameters: dict):
+    """
+    Compute the coefficient of coincidence curve.
+    Implementation based on calculating the total average of
+    :param data_positions: 2D array of crossover position
+    :param parameters: Dictionary with parameters.
+    :return: coefficient_of_coincidence
+    """
+    number_of_samples = np.shape(data_positions)[0]
+    num_of_intervals = parameters['NUM_INTERVALS']
     event_per_interval = np.zeros((number_of_samples, num_of_intervals))
     pattern_per_interval = np.zeros((number_of_samples, num_of_intervals))
-    observed_pattern_frequency = np.zeros((num_of_intervals - 1, num_of_intervals))
-    expected_pattern_frequency = np.zeros((num_of_intervals - 1, num_of_intervals))
+    observed_double_event_frequency_per_interval = np.zeros((num_of_intervals, num_of_intervals))
+    expected_double_event_frequency_per_interval = np.zeros((num_of_intervals, num_of_intervals))
     coc_x = parameters['length'] * np.linspace(0, 1 - 1 / num_of_intervals, num_of_intervals)
     for i in np.arange(number_of_samples):
         index_of_crossover = np.where(~np.isnan(data_positions[i, :]))[0]
@@ -173,23 +211,22 @@ def coefficient_of_coincidence_mwhite(data_positions: np.array, parameters: dict
             if x_pos * num_of_intervals < num_of_intervals:
                 event_per_interval[
                     i, int(x_pos * num_of_intervals)] += 1.
-                pattern_per_interval[
-                    i, int(x_pos * num_of_intervals)] = 1.
 
-    observed_pattern_frequency_per_interval = np.mean(pattern_per_interval, axis=0)
-    for i in range(num_of_intervals - 1):
-        for j in range(i + 1, num_of_intervals):
-            observed_pattern_frequency[i, j - i] = np.sum(
-                pattern_per_interval[:, i] * pattern_per_interval[:, j]) / number_of_samples
-            expected_pattern_frequency[i, j - i] = \
-                observed_pattern_frequency_per_interval[i] * observed_pattern_frequency_per_interval[j]
+    observed_event_frequency_per_interval = np.mean(event_per_interval, axis=0)
+    for i in range(num_of_intervals):
+        for j in range(i, num_of_intervals):
+            if i == j:
+                observed_double_event_frequency_per_interval[i, 0] = np.sum(
+                    event_per_interval[:, i] * (event_per_interval[:, i] - 1) / 2) / number_of_samples
+            else:
+                observed_double_event_frequency_per_interval[i, j - i] = np.sum(
+                    event_per_interval[:, i] * event_per_interval[:, j]) / number_of_samples
+            expected_double_event_frequency_per_interval[i, j - i] = \
+                observed_event_frequency_per_interval[i] * observed_event_frequency_per_interval[j]
     np.seterr(invalid='ignore')
-    coc_per_distance = np.divide(observed_pattern_frequency, expected_pattern_frequency)
-    total_coc_per_distance = np.nansum(coc_per_distance, axis=0)
-    total_pairs_per_distance = np.copy(coc_per_distance)
-    total_pairs_per_distance[~np.isnan(total_pairs_per_distance)] = 1.
-    total_pairs_per_distance = np.nansum(total_pairs_per_distance, axis=0)
-    coc_y = total_coc_per_distance / total_pairs_per_distance
+    observed_event_frequency = np.sum(observed_double_event_frequency_per_interval, axis=0)
+    expected_event_frequency = np.sum(expected_double_event_frequency_per_interval, axis=0)
+    coc_y = np.divide(observed_event_frequency, expected_event_frequency)
     return coc_x, coc_y
 
 
@@ -208,7 +245,7 @@ def coefficient_of_coincidence_mernst(data_positions: np.array, parameters: dict
     histogram_observed = np.histogram(distances_observed, bins=np.linspace(0, 1, number_of_intervals + 1))
     histogram_expected = np.histogram(distances_expected, bins=np.linspace(0, 1, number_of_intervals + 1))
 
-    coc_x = histogram_observed[1][:-1] + histogram_expected[1][1] / 2
+    coc_x = parameters['length'] * (histogram_observed[1][:-1] + histogram_expected[1][1] / 2)
 
     data_flat = data_positions.flatten()
     data_flat = data_flat[~np.isnan(data_flat)]
@@ -236,10 +273,25 @@ def coefficient_of_coincidence(data_positions: np.array, parameters: dict):
     :param parameters: Dictionary with parameters.
     :return: coefficient_of_coincidence
     """
+    number_of_samples = np.shape(data_positions)[0]
+    sample_size = int(number_of_samples / 2 + 0.5)
+
     if parameters['COC_IMPLEMENTATION'] == 'mwhite':
-        return coefficient_of_coincidence_mwhite(data_positions, parameters)
+        coefficient_of_coincidence_func = coefficient_of_coincidence_mwhite
     elif parameters['COC_IMPLEMENTATION'] == 'mernst':
-        return coefficient_of_coincidence_mernst(data_positions, parameters)
+        coefficient_of_coincidence_func = coefficient_of_coincidence_mernst
+    elif parameters['COC_IMPLEMENTATION'] == 'total-average':
+        coefficient_of_coincidence_func = coefficient_of_coincidence_total_average
+    else:
+        coefficient_of_coincidence_func = coefficient_of_coincidence_mernst
+
+    coc_x, coc_y = coefficient_of_coincidence_func(data_positions, parameters)
+    coc_y_samples = np.zeros((np.shape(coc_y)[0], parameters['NUM_BOOTSTRAP_SAMPLES']))
+    for i in range(parameters['NUM_BOOTSTRAP_SAMPLES']):
+        data_sample = get_data_sample(data_positions, sample_size)
+        _, coc_y_samples[:, i] = coefficient_of_coincidence_func(data_sample, parameters)
+    coc_y_std = np.nanstd(coc_y_samples, axis=1) / np.sqrt(2)
+    return coc_x, coc_y, coc_y_std
 
 
 def get_x_from_linearization(x_1, x_2, y_1, y_2, y_th):
@@ -260,7 +312,7 @@ def interference_distance(data_positions: np.array, parameters: dict):
     :param parameters: Dictionary with parameters.
     :return: interference distance d_coc
     """
-    coc_x, coc_y = coefficient_of_coincidence(data_positions, parameters)
+    coc_x, coc_y, _ = coefficient_of_coincidence(data_positions, parameters)
 
     if np.isnan(coc_y).all():
         d_coc = np.nan
@@ -272,7 +324,7 @@ def interference_distance(data_positions: np.array, parameters: dict):
             d_coc = coc_x[index_first_exceeds]
         else:
             d_coc = get_x_from_linearization(coc_x[index_first_exceeds - 1], coc_x[index_first_exceeds],
-                                            coc_y[index_first_exceeds - 1], coc_y[index_first_exceeds], 0.5)
+                                             coc_y[index_first_exceeds - 1], coc_y[index_first_exceeds], 0.5)
     else:
         d_coc = parameters['length']
     return d_coc
@@ -282,7 +334,7 @@ def bootstrap_half_samples(measure_func, data_positions: np.array, parameters: d
     """
     Compute the mean and standard deviation of some interference measure
     :param measure_func: function to compute a specific interference measure. It needs to take the parameters:
-        data_positions, parameters and length.
+        data_positions and parameters.
     :param data_positions: 2D array of crossover positions
     :param parameters: dictionary with parameters
     :return: tuple of mean and standard deviation of the mean of a certain interference measure

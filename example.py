@@ -2,7 +2,7 @@ from numpy import genfromtxt
 from measure_CO_interference import *
 
 if __name__ == "__main__":
-    my_params = {'COC_IMPLEMENTATION': 'mwhite', 'GENETIC_DATA': True}
+    my_params = {'COC_IMPLEMENTATION': 'mernst', 'GENETIC_DATA': True}
     my_params = init_parameters(my_params)
     # Load chromosome lengths for A. thaliana (genetic data from Durand2022) from file
     chromosome_lengths = genfromtxt("data/chr_lengths.csv", delimiter=',')
@@ -19,8 +19,8 @@ if __name__ == "__main__":
                 # compute summary statistics measures, e.g. mean number of COs, (normalized), interference length, interference distance and gamma shape parameter
                 results = get_interference_measures(data_x, parameters=my_params)
                 # Calculating the coefficient of coincidence curve
-                coc_x, coc_y = coefficient_of_coincidence(data_x, parameters=my_params)
+                coc_x, coc_y, coc_y_std = coefficient_of_coincidence(data_x, parameters=my_params)
                 print(genotype, sex, chr_idx + 1)
                 for key in results.keys():
                     print(key + ': ' + str(results[key]))
-                print('CoC values', coc_x, coc_y, '\n')
+                print('Coefficient of coincidence: ', np.stack((coc_x, coc_y, coc_y_std)).T, '\n')
