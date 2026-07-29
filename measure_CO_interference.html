@@ -188,7 +188,7 @@ function getDistances(positions) {
 
 
 function getExpectedDistances(positions) {
-    const posFlat = new Float64Array(positions.flat());
+    const posFlat = new Float32Array(positions.flat());
     const samplesize = 4500000;
     const distances_length = Math.min(posFlat.length * (posFlat.length - 1) / 2, samplesize);
     var distances = new Float32Array(distances_length);
@@ -275,18 +275,19 @@ function getDnoInt(positions) {
 }
 
 
-function getHistogram(data, number_of_intervals) {
+function getHistogram(flat_data, length, number_of_intervals) {
     // Create histogram for data ranging from 0 to 1 with a given number of intervals.
     const frequency = new Float32Array(number_of_intervals).fill(0);
-    const samplesize = data.length;
+    const samplesize = flat_data.length;
     const binEdges = new Array(number_of_intervals + 1).fill(0);
-    const binWidth = 1 / number_of_intervals;
+    const binWidth = length / number_of_intervals;
     for (let i = 0; i <= number_of_intervals; i++) {
         binEdges[i] = binWidth * i;
     }
     
-    for (const value of data) {
-        if (isNaN(value)) continue;
+    for (let i=0; i<samplesize; i++) {
+        value = flat_data[i]
+        // if (isNaN(value)) continue;
         for (let i = 0; i < number_of_intervals; i++) {
             if (value >= binEdges[i] && value < binEdges[i + 1]) {
                 frequency[i] += 1 / samplesize;
@@ -294,7 +295,7 @@ function getHistogram(data, number_of_intervals) {
             }
         }
     }
-    return [binEdges, frequency];
+    return frequency;
 }
 
 function calcInterferenceLength(positions, distances, length, scale_factor = 1) {
@@ -370,13 +371,13 @@ function calcCoC_mwhite(positions, length, number_of_intervals) {
     let observed_pattern_frequency_per_interval = new Float32Array(number_of_intervals);
     var sample_idx = 0;
     for (let sample of positions) {
-        for (i = 0; i < sample.length; i++) {
+        for (let i = 0; i < sample.length; i++) {
             ni = Math.floor(sample[i] / length * number_of_intervals);
             pattern_per_interval[sample_idx][ni] = 1.0;
         }
-        for (i = 0; i < number_of_intervals; i++) {
+        for (let i = 0; i < number_of_intervals; i++) {
             observed_pattern_frequency_per_interval[i] += pattern_per_interval[sample_idx][i] / samplesize;
-            for (j = i+1; j < number_of_intervals; j++) {
+            for (let j = i+1; j < number_of_intervals; j++) {
                 observed_pattern_frequency_per_distance[i][j - i] += pattern_per_interval[sample_idx][i] * pattern_per_interval[sample_idx][j] / samplesize;
             }
         }
@@ -387,9 +388,9 @@ function calcCoC_mwhite(positions, length, number_of_intervals) {
     let dists = new Float64Array(number_of_intervals);
     let coc = new Float64Array(number_of_intervals);
     let n = new Uint32Array(number_of_intervals);
-    for (i=0; i<number_of_intervals; i++) {
+    for (let i=0; i<number_of_intervals; i++) {
         dists[i] = i * length / number_of_intervals;
-        for (j=i+1; j<number_of_intervals; j++) {
+        for (let j=i+1; j<number_of_intervals; j++) {
             d = Math.abs(j - i);
             rAB = observed_pattern_frequency_per_distance[i][d];
             if (rAB > 0) {
@@ -421,30 +422,30 @@ function calcCoC_total_average(positions, length, number_of_intervals) {
     var expected_event_frequency = Array(number_of_intervals).fill(0);
     var sample_idx = 0;
     for (let sample of positions) {
-        for (i = 0; i < sample.length; i++) {
+        for (let i = 0; i < sample.length; i++) {
             ni = Math.floor(sample[i] / length * number_of_intervals);
             event_per_interval[sample_idx][ni] += 1.0;
         }
-        for (i = 0; i < number_of_intervals; i++) {
+        for (let i = 0; i < number_of_intervals; i++) {
             observed_event_frequency_per_interval[i] += event_per_interval[sample_idx][i] / samplesize;
             observed_event_frequency_per_distance[i][0] += event_per_interval[sample_idx][i] * (event_per_interval[sample_idx][i] - 1.0) / (2 * samplesize);
-            for (j = i + 1; j < number_of_intervals; j++) {
+            for (let j = i + 1; j < number_of_intervals; j++) {
                 observed_event_frequency_per_distance[i][j - i] += event_per_interval[sample_idx][i] * event_per_interval[sample_idx][j] / samplesize;
             }
         }
         sample_idx++;
     }
     
-    for (i = 0; i < number_of_intervals; i++) {
-        for (j = i; j < number_of_intervals; j++) {
+    for (let i = 0; i < number_of_intervals; i++) {
+        for (let j = i; j < number_of_intervals; j++) {
             expected_event_frequency_per_distance[i][j - i] = observed_event_frequency_per_interval[i] * observed_event_frequency_per_interval[j];
             observed_event_frequency[j - i] += observed_event_frequency_per_distance[i][j - i];
             expected_event_frequency[j - i] += expected_event_frequency_per_distance[i][j - i];
         }
     }
-    let dists = new Float64Array(number_of_intervals);
-    let coc = new Float64Array(number_of_intervals);
-    for (d = 0; d < number_of_intervals; d++) {
+    let dists = new Float32Array(number_of_intervals);
+    let coc = new Float32Array(number_of_intervals);
+    for (let d = 0; d < number_of_intervals; d++) {
         coc[d] = observed_event_frequency[d] / expected_event_frequency[d];
         dists[d] = d * length / number_of_intervals;
     }
@@ -457,9 +458,41 @@ function calcCoC_mernst(positions, length, number_of_intervals) {
     // Implementation based on the approach by Marcel Ernst in https://www.nature.com/articles/s41467-024-53054-2
 
     let samplesize = positions.length;
-    const observed_distances = getDistances(positions);
+    const posFlat = new Float32Array(positions.flat());
+    const observed_distances = getDistances(positions)
     const expected_distances = getExpectedDistances(positions);
+    const observed_event_frequency = getHistogram(observed_distances.flat(), length, number_of_intervals);
+    const expected_event_frequency = getHistogram(expected_distances, length, number_of_intervals);
+    let dists = new Float32Array(number_of_intervals);
+    let coc = new Float32Array(number_of_intervals);
+    
+    const [countMean, countStd] = arrayStats(positions);
+    const [pairMean, pairStd] = arrayStats(observed_distances);
+    const numPairsNoInt = 0.5 * countMean ** 2;
+    const fraction_observed_pairs = pairMean / numPairsNoInt;
+
+    for (let d = 0; d < number_of_intervals; d++) {
+        coc[d] = fraction_observed_pairs * observed_event_frequency[d] / expected_event_frequency[d];
+        dists[d] = (d + 1/2) * length / number_of_intervals;
+    }
     return [dists, coc];
+}
+
+function calcCoC(positions, length, number_of_intervals, selectedAnalysis) {
+    let CoC_x, CoC_y;
+    // calculate the coefficient of coincidence curve with selected analysis method
+    switch (selectedAnalysis) {
+        case 'mwhite':
+            [CoC_x, CoC_y] = calcCoC_mwhite(positions, length, number_of_intervals);
+            break;
+        case 'total_average':
+            [CoC_x, CoC_y] = calcCoC_total_average(positions, length, number_of_intervals);
+            break;
+        case 'mernst':
+            [CoC_x, CoC_y] = calcCoC_mernst(positions, length, number_of_intervals);
+            break;
+    }
+    return [CoC_x, CoC_y];
 }
 
 
@@ -467,9 +500,13 @@ function calcQuantities() {
     // read data
     const length = parseFloat(document.getElementById("length").value);
     const positions = parseCSV(document.getElementById("data").value, length);
+    const number_of_intervals = parseInt(document.getElementById("number_of_intervals").value);
     const observed_distances = getDistances(positions);
     const expected_distances = getExpectedDistances(positions);
-    const scale_factor = (document.getElementById("genetic_data").checked ? 2 : 1);
+    const observed_event_frequency = getHistogram(observed_distances.flat(), length, number_of_intervals);
+    const expected_event_frequency = getHistogram(expected_distances, length, number_of_intervals);
+    const scale_factor = (document.querySelector('input[name="data_type"][value="genetic_data"]').checked ? 2 : 1);
+    const selectedAnalysis = document.querySelector('input[name="analysis_type"]:checked').value;
 
     // calculate quantities
     let result = calcInterferenceLength(positions, observed_distances, length, scale_factor);
@@ -498,13 +535,10 @@ Ratio observed to expected CO pairs: ϕ = ${format(result["numPairsObs"] / resul
 Scale factor for sub-sampling: ${scale_factor}`;
 
     // calculate CoC curve
-    const number_of_intervals = parseInt(document.getElementById("number_of_intervals").value);
-    const [CoC_x, CoC_y] = calcCoC_total_average(positions, length, number_of_intervals);
-    // const [bins_observed, frequency_observed] = getHistogram(observed_distances, number_of_intervals);
-    // const [bins_expected, frequency_expected] = getHistogram(expected_distances, number_of_intervals);
+    const [CoC_x, CoC_y] = calcCoC(positions, length, number_of_intervals, selectedAnalysis);
     let CoC_data = [];
-    for (i=0; i < CoC_x.length; i++) {
-        CoC_data.push(`${format(CoC_x[i], 3)}\t${format(CoC_y[i], 3)}`);
+    for (let i=0; i < CoC_x.length; i++) {
+        CoC_data.push(`${format(CoC_x[i], 6)}\t${format(CoC_y[i], 6)}`);
     }
     document.getElementById("CoC_data").value = CoC_data.join("\n");
 
@@ -544,7 +578,9 @@ Scale factor for sub-sampling: ${scale_factor}`;
 function loadExample() {
     document.getElementById("length").value = EXAMPLE_LENGTH;
     document.getElementById("data").value = EXAMPLE_POSITIONS.replaceAll(";", "\n");
-    document.getElementById("genetic_data").checked = true;
+    // document.getElementById("genetic_data").checked = true;
+
+    document.querySelector('input[name="data_type"][value="genetic_data"]').checked = true;
 }
 </script>
 </head>
@@ -554,23 +590,57 @@ function loadExample() {
     This webpage calculates quantities related to crossover interference for a single type of chromosomes from multiple samples of measured crossover positions. The tool was introduced in <a href="https://doi.org/10.1038/s41467-024-53054-2">Ernst et al., Nat. Commun. (2024)</a>.
     Positions need to be specified in fractions of the total chromosome length, so they are numbers between 0 and 1.
     The chromosome length can be specified in units of micrometer (µm) for cytological data, units of megabases (Mb) for genetic data, or left set to 1 to obtain results normalized to the chromosome length.
+    Example data is genetic, positional CO data for <i>A. thaliana</i> (wild-type, male, chromosome 1) from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a> and <a href="https://www.pnas.org/doi/10.1073/pnas.2221746120">Singh et al., PNAS (2023)</a>.
     <h2>Input</h2>
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
-        <li><label for="length">Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label><input type="text" id="length" name="length" value="1" required></li>
-        <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li>
+        <li><label for="length">Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label> <input type="text" id="length" name="length" value="1" required style="width: 60px;"></li>
         <li><label for="data">Observed crossover positions <span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
+        <!-- <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li> -->
+        
         <div class="misc_link">
-            <button type="button" onclick="loadExample()" style="font-size: 0.8em; padding: 2px 6px; margin-right: 4px;">Load example</button>
-            <span>Positional CO data (for <i>A. thaliana</i>, wild-type, male, chromosome 1) from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a> and <a href="https://www.pnas.org/doi/10.1073/pnas.2221746120">Singh et al., PNAS (2023)</a></span>
+            <button type="button" onclick="loadExample()" style="font-size: 0.8em; padding: 2px 6px; margin-right: 4px;">Load example data</button> <span> from A. thaliana (wild-type, male, chromosome 1) </span>
         </div>
+        <li>
+            <label>Source of data:</label>
+        <div style="display: flex; gap: 15px; margin: 5px 0;">
+            <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                <input type="radio" name="data_type" value="genetic_data" checked>
+                Genetic data
+                <!-- <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span> -->
+                </label>
+            <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                <input type="radio" name="data_type" value="cytological_data">
+                Cytological data
+            </label>
+        </div>
+        </li>
+        
+        </li>
+        <li><label for="number_of_intervals">Number of intervals</label> <input type="number" id="number_of_intervals" value="15" step="1" min="1" style="width: 60px;"></li>
+        <li><label for="bootstrapping_sample_size">Bootstrapping sample size</label> <input type="number" id="bootstrapping_sample_size" value="100" step="1" min="1" style="width: 60px;"></li>
+        <li>
+            <label>Implementation of Coefficient of coincidence:</label>
+            <div style="display: flex; gap: 15px; margin: 5px 0;">
+                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                    <input type="radio" name="analysis_type" value="mwhite" checked>
+                    Pre-Binning
+                </label>
+                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                    <input type="radio" name="analysis_type" value="total_average">
+                    Total average
+                </label>
+                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                    <input type="radio" name="analysis_type" value="mernst">
+                    Post-Binning
+                </label>
+            </div>
+        </li>
         <div class="misc_link">
             <button type="button" onclick="shuffleInputData()" style="font-size: 0.8em; padding: 2px 6px; margin-right: 4px;">Shuffle</button>
             <span>Randomize input by shuffling crossover positions </span>
         </div>
-        </li>
-        <li><label for="number_of_intervals">Interval count for calculating Coefficient of Coincidence</label><input type="number" id="number_of_intervals" value="15" step="1" onchange="this.value = Math.max(1, Math.min(100, parseInt(this.value)));"></li>
         <li><input type="submit" value="Calculate quantities"></li>
     </ul>
     </form>
