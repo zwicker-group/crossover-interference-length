@@ -562,7 +562,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
     for (let i=0; i < CoC_x.length; i++) {
         CoC_data.push(`${CoC_x[i].toFixed(6)}\t${CoC_y[i].toFixed(6)}\t${CoC_y_error[i].toFixed(6)}`);
     }
-    document.getElementById("CoC_data").value = CoC_data.join("\n");
+    document.getElementById("CoC_data").value = CoC_data.join("\n").replace(/\n$/, "");;
 
     // plot CoC curve
     
