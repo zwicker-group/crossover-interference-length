@@ -409,7 +409,7 @@ function calcCoC_mwhite(positions, length, number_of_intervals) {
     return [dists.subarray(1), coc.subarray(1)];
 }
 
-function calcCoC_total_average(positions, length, number_of_intervals) {
+function calcCoC_total_average(positions, length, number_of_intervals, compute_sample_sizes=false) {
     // calculate the coefficient of coincidence curve
     // Implementation based on the ratio of the observed and expected event frequency for all interval distances.
 
@@ -427,10 +427,10 @@ function calcCoC_total_average(positions, length, number_of_intervals) {
             event_per_interval[sample_idx][ni] += 1.0;
         }
         for (let i = 0; i < number_of_intervals; i++) {
-            observed_event_frequency_per_interval[i] += event_per_interval[sample_idx][i] / sample_size;
-            observed_event_frequency_per_distance[i][0] += event_per_interval[sample_idx][i] * (event_per_interval[sample_idx][i] - 1.0) / (2 * sample_size);
+            observed_event_frequency_per_interval[i] += event_per_interval[sample_idx][i];
+            observed_event_frequency_per_distance[i][0] += event_per_interval[sample_idx][i] * (event_per_interval[sample_idx][i] - 1.0) / 2;
             for (let j = i + 1; j < number_of_intervals; j++) {
-                observed_event_frequency_per_distance[i][j - i] += event_per_interval[sample_idx][i] * event_per_interval[sample_idx][j] / sample_size;
+                observed_event_frequency_per_distance[i][j - i] += event_per_interval[sample_idx][i] * event_per_interval[sample_idx][j];
             }
         }
         sample_idx++;
@@ -438,7 +438,7 @@ function calcCoC_total_average(positions, length, number_of_intervals) {
     
     for (let i = 0; i < number_of_intervals; i++) {
         for (let j = i; j < number_of_intervals; j++) {
-            expected_event_frequency_per_distance[i][j - i] = observed_event_frequency_per_interval[i] * observed_event_frequency_per_interval[j];
+            expected_event_frequency_per_distance[i][j - i] = observed_event_frequency_per_interval[i] * observed_event_frequency_per_interval[j] / sample_size;
             observed_event_frequency[j - i] += observed_event_frequency_per_distance[i][j - i];
             expected_event_frequency[j - i] += expected_event_frequency_per_distance[i][j - i];
         }
@@ -449,7 +449,12 @@ function calcCoC_total_average(positions, length, number_of_intervals) {
         coc[d] = observed_event_frequency[d] / expected_event_frequency[d];
         dists[d] = d * length / number_of_intervals;
     }
-    return [dists, coc];
+    if (compute_sample_sizes) {
+        return [dists, coc, observed_event_frequency, expected_event_frequency];    
+    } else {
+        return [dists, coc];
+    }
+    
 }
 
 
@@ -459,7 +464,7 @@ function calcCoC_mernst(positions, length, number_of_intervals) {
 
     let sample_size = positions.length;
     const posFlat = new Float32Array(positions.flat());
-    const observed_distances = getDistances(positions)
+    const observed_distances = getDistances(positions);
     const expected_distances = getExpectedDistances(positions);
     const observed_event_frequency = getHistogram(observed_distances.flat(), length, number_of_intervals);
     const expected_event_frequency = getHistogram(expected_distances, length, number_of_intervals);
@@ -478,42 +483,58 @@ function calcCoC_mernst(positions, length, number_of_intervals) {
     return [dists, coc];
 }
 
-function calcCoC(positions, length, number_of_intervals, selectedAnalysis) {
-    let CoC_x, CoC_y;
+function calcCoC(positions, length, number_of_intervals, selectedAnalysis, compute_sample_sizes=false) {
+    let CoC_x, CoC_y, N_obs, N_exp;
     // calculate the coefficient of coincidence curve with selected analysis method
     switch (selectedAnalysis) {
         case 'mwhite':
             [CoC_x, CoC_y] = calcCoC_mwhite(positions, length, number_of_intervals);
             break;
         case 'total_average':
-            [CoC_x, CoC_y] = calcCoC_total_average(positions, length, number_of_intervals);
+            if (selectedAnalysis == 'total_average' && compute_sample_sizes) {
+                [CoC_x, CoC_y, N_obs, N_exp] = calcCoC_total_average(positions, length, number_of_intervals, true);
+            } else {
+                [CoC_x, CoC_y] = calcCoC_total_average(positions, length, number_of_intervals);
+            }
             break;
         case 'mernst':
             [CoC_x, CoC_y] = calcCoC_mernst(positions, length, number_of_intervals);
             break;
     }
-    return [CoC_x, CoC_y];
+    if (selectedAnalysis == 'total_average' && compute_sample_sizes) {
+        return [CoC_x, CoC_y, N_obs, N_exp];
+    } else {
+        return [CoC_x, CoC_y];    
+    }
 }
 
 
 function calcCoCErr(positions, length, number_of_intervals, selectedAnalysis, bootstrap_repetitions) {
     // use bootstrapping to estimate error
     const sample_size = Math.ceil(positions.length / 2);
-    let CoC_x, CoC_y;
-    [CoC_x, CoC_y] = calcCoC(positions, length, number_of_intervals, selectedAnalysis);
+    let CoC_x, CoC_y, N_obs, N_exp;
+    if (selectedAnalysis == 'total_average') {
+        [CoC_x, CoC_y, N_obs, N_exp] = calcCoC(positions, length, number_of_intervals, selectedAnalysis, true);
+    } else {
+        [CoC_x, CoC_y] = calcCoC(positions, length, number_of_intervals, selectedAnalysis);
+    }
     var CoC_y_variance = new Float32Array(number_of_intervals).fill(0);
     let CoC_y_err = new Float32Array(number_of_intervals).fill(0);
     for (let count = 0; count < bootstrap_repetitions; count++) {
         const sub_pos = getRandomSubarray(positions, sample_size);
         const [sub_x, sub_y] = calcCoC(sub_pos, length, number_of_intervals, selectedAnalysis);
         for (let i=0; i<number_of_intervals; i++){
-            CoC_y_variance[i] += (sub_y[i] - CoC_y[i]) ** 2
+            CoC_y_variance[i] += (sub_y[i] - CoC_y[i]) ** 2;
         }
     }
     for (let i=0; i<number_of_intervals; i++){
             CoC_y_err[i] = Math.sqrt(CoC_y_variance[i] / (2 * bootstrap_repetitions));
     }
-    return [CoC_x, CoC_y, CoC_y_err];
+    if (selectedAnalysis == 'total_average') {
+        return [CoC_x, CoC_y, CoC_y_err, N_obs, N_exp];
+    } else {
+        return [CoC_x, CoC_y, CoC_y_err];
+    }
 }
 
 function calcQuantities() {
@@ -555,12 +576,22 @@ Mean number of missing CO pairs: N^pair_mis = ${format(result["numPairsMis"])}
 Ratio observed to expected CO pairs: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
 Scale factor for sub-sampling: ${scale_factor}`;
 
-    // // calculate CoC curve
-    const [CoC_x, CoC_y, CoC_y_error] = calcCoCErr(positions, length, number_of_intervals, selectedAnalysis, bootstrap_repetitions);
-
+    // calculate CoC curve
     let CoC_data = [];
+    if (selectedAnalysis == 'total_average') {
+        [CoC_x, CoC_y, CoC_y_error, N_obs, N_exp] = calcCoCErr(positions, length, number_of_intervals, selectedAnalysis, bootstrap_repetitions);
+        console.log(CoC_x, selectedAnalysis);
+    } else {
+        [CoC_x, CoC_y, CoC_y_error] = calcCoCErr(positions, length, number_of_intervals, selectedAnalysis, bootstrap_repetitions);    
+    }
+    
+    console.log(CoC_x, selectedAnalysis);
     for (let i=0; i < CoC_x.length; i++) {
-        CoC_data.push(`${CoC_x[i].toFixed(6)}\t${CoC_y[i].toFixed(6)}\t${CoC_y_error[i].toFixed(6)}`);
+        if (selectedAnalysis == 'total_average') {
+            CoC_data.push(`${CoC_x[i].toFixed(6)}\t${CoC_y[i].toFixed(6)}\t${CoC_y_error[i].toFixed(6)}\t${N_obs[i].toFixed(0)}\t${N_exp[i].toFixed(3)}`);
+        } else {
+            CoC_data.push(`${CoC_x[i].toFixed(6)}\t${CoC_y[i].toFixed(6)}\t${CoC_y_error[i].toFixed(6)}`);    
+        }
     }
     document.getElementById("CoC_data").value = CoC_data.join("\n").replace(/\n$/, "");;
 
@@ -635,7 +666,7 @@ function loadExample() {
     <h2>Input</h2>
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
-        <li><label for="length">Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label> <input type="text" id="length" name="length" value="1" required style="width: 60px;"></li>
+        <li><input type="text" id="length" name="length" value="1" required style="width: 80px;"><label for="length"> Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label> </li>
         <li><label for="data">Observed crossover positions <span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <!-- <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li> -->
@@ -659,17 +690,17 @@ function loadExample() {
         </li>
         
         </li>
-        <li><label for="number_of_intervals">Number of intervals</label> <input type="number" id="number_of_intervals" value="15" step="1" min="1" style="width: 60px;"></li>
-        <li><label for="bootstrap_repetitions">Bootstrapping repetitions</label> <input type="number" id="bootstrap_repetitions" value="100" step="1" min="1" style="width: 60px;"></li>
+        <li><input type="number" id="number_of_intervals" value="15" step="1" min="1" style="width: 60px;"><label for="number_of_intervals"> Number of intervals</label> </li>
+        <li><input type="number" id="bootstrap_repetitions" value="200" step="1" min="1" style="width: 60px;"><label for="bootstrap_repetitions"> Bootstrapping repetitions</label> </li>
         <li>
             <label>Implementation of Coefficient of coincidence:</label>
             <div style="display: flex; gap: 15px; margin: 5px 0;">
                 <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
-                    <input type="radio" name="analysis_type" value="mwhite" checked>
+                    <input type="radio" name="analysis_type" value="mwhite">
                     Pre-Binning
                 </label>
                 <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
-                    <input type="radio" name="analysis_type" value="total_average">
+                    <input type="radio" name="analysis_type" value="total_average" checked>
                     Total average
                 </label>
                 <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
@@ -693,7 +724,7 @@ function loadExample() {
     <li><label for="output_data">Additional data:</label><textarea name="output_data" id="output_data" cols="60" rows="15" disabled></textarea></li>
     <div id='CoC_plot'></div>
     <div id='histogram'></div>
-    <li><label for="CoC_data">Coefficient of Coincidence (CoC):</label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
+    <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span style="font-weight: normal;">distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
     </ul></form>
   </div>
 <!-- <script>document.getElementById("bootstrap_num").textContent = BOOTSTRAP_REPETITIONS.toString();</script> -->
