@@ -562,18 +562,17 @@ function calcQuantities() {
     document.getElementById("output_data").value =
         `Chromosome length: L = ${length}
 Number of samples: n = ${result["samples"]}
-Mean number of COs: N = ${format(result["countMean"])} ± ${format(result["countStd"])}
-Mean number of CO pairs: N_pairs = ${format(result["pairMean"])} ± ${format(result["pairStd"])}
-
+Average CO count: N = ${format(result["countMean"])} ± ${format(result["countStd"])}
+Average number of CO pairs: N_pairs = ${format(result["pairMean"])} ± ${format(result["pairStd"])}
 Interference length: L_int = ${Lint}
-Normalized interference length: L_int * <N> / L = ${LintNorm}
+Normalized interference length: L_int * N / L = ${LintNorm}
+
 Mean observed distance: d_Obs = ${format(result["dObs"])}
-Distance with interference: d_Int = ${format(result["dInt"])}
-Distance without interference: d_noInt = ${format(result["dnoInt"])}
-Mean number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
-Mean number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
-Mean number of missing CO pairs: N^pair_mis = ${format(result["numPairsMis"])}
-Ratio observed to expected CO pairs: ϕ = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
+Average CO distance (observed): d_Int = ${format(result["dInt"])}
+Average CO distance (no interference): d_noInt = ${format(result["dnoInt"])}
+Average number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
+Average number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
+Ratio of observed to expected CO pairs: N^pair_obs / N^pair_noInt = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
 Scale factor for sub-sampling: ${scale_factor}`;
 
     // calculate CoC curve
@@ -634,7 +633,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
     Plotly.newPlot('CoC_plot', [CoC_curve, Lint_label, CoC_error_band], layout);
 
     // Plot histogram
-    let hist_expected = {x: expected_distances, type: "histogram", opacity: 0.5, marker: {color: 'gray'}, name: "Expected", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
+    let hist_expected = {x: expected_distances, type: "histogram", opacity: 0.5, marker: {color: 'gray'}, name: "No interference", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
     let hist_observed = {x: observed_distances.flat(), type: "histogram", opacity: 0.5, marker: {color: 'green'}, name: "Observed", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
 
   
@@ -649,33 +648,42 @@ Scale factor for sub-sampling: ${scale_factor}`;
 }
 
 
+function updateCoCTableHeading() {
+    const selectedAnalysis = document.querySelector('input[name="analysis_type"]:checked').value;
+    const labelSpan = document.getElementById('CoC_label_text');
+    
+    if (selectedAnalysis === 'total_average') {
+        labelSpan.innerHTML = 'Distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp; CoC error &emsp; &emsp; &emsp; &emsp; N_obs &emsp;  N_exp';
+    } else {
+        labelSpan.innerHTML = 'Distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp; CoC error';
+    }
+}
+
 function loadExample() {
     document.getElementById("length").value = EXAMPLE_LENGTH;
     document.getElementById("data").value = EXAMPLE_POSITIONS.replaceAll(";", "\n");
     document.querySelector('input[name="data_type"][value="genetic_data"]').checked = true;
 }
+
+
+document.addEventListener('DOMContentLoaded', updateCoCTableHeading);
 </script>
+
 </head>
 <body>
   <div class="body">
     <h1>Quantify Crossover Interference</h1>
-    This webpage calculates quantities related to crossover interference for a single type of chromosomes from multiple samples of measured crossover positions. The tool was introduced in <a href="https://doi.org/10.1038/s41467-024-53054-2">Ernst et al., Nat. Commun. (2024)</a>.
+    This webpage calculates quantities related to crossover interference for a single type of chromosomes from multiple samples of crossover positions. The tool was introduced in <a href="https://doi.org/10.1038/s41467-024-53054-2">Ernst et al., Nat. Commun. (2024)</a>.
     Positions need to be specified in fractions of the total chromosome length, so they are numbers between 0 and 1.
     The chromosome length can be specified in units of micrometer (µm) for cytological data, units of megabases (Mb) for genetic data, or left set to 1 to obtain results normalized to the chromosome length.
-    Example data is genetic, positional CO data for <i>A. thaliana</i> (wild-type, male, chromosome 1) from <a href="https://doi.org/10.1038/s41467-022-33472-w">Durand et al., Nat. Commun. (2022)</a> and <a href="https://www.pnas.org/doi/10.1073/pnas.2221746120">Singh et al., PNAS (2023)</a>.
     <h2>Input</h2>
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
         <li><input type="text" id="length" name="length" value="1" required style="width: 80px;"><label for="length"> Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label> </li>
-        <li><label for="data">Observed crossover positions <span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
+        <li><label for="data">Observed crossover positions: <br/><span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <!-- <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li> -->
-        
-        <div class="misc_link">
-            <button type="button" onclick="loadExample()" style="font-size: 0.8em; padding: 2px 6px; margin-right: 4px;">Load example data</button> <span> from A. thaliana (wild-type, male, chromosome 1) </span>
-        </div>
-        <li>
-            <label>Source of data:</label>
+        <!-- <label>Source of data:</label> -->
         <div style="display: flex; gap: 15px; margin: 5px 0;">
             <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
                 <input type="radio" name="data_type" value="genetic_data" checked>
@@ -687,44 +695,51 @@ function loadExample() {
                 Cytological data
             </label>
         </div>
+        <div class="misc_link">
+            <button type="button" onclick="loadExample()" style="font-size: 1em; padding: 2px 6px; margin-right: 4px;">Load example data</button> <span> Genetic data from A. thaliana wild-type (male, first chromosome) </span> [<a href="https://doi.org/10.1038/s41467-022-33472-w">1</a>, <a href="https://www.pnas.org/doi/10.1073/pnas.2221746120">2</a>].
+        </div>
+        <div class="misc_link">
+            <button type="button" onclick="shuffleInputData()" style="font-size: 1em; padding: 2px 6px; margin-right: 4px;">Shuffle input data</button>
+            <span>Randomize input data by shuffling crossover positions </span>
+        </div>
+        </li>
+        <label>Numerical parameters:</label>
+        <li><input type="number" id="number_of_intervals" value="15" step="1" min="1" style="width: 60px;"><label for="number_of_intervals"> <span style="font-weight: normal;">Number of intervals (for Coefficient of coincidence and histogram)</span>
+                </label> </li>
+        <li><input type="number" id="bootstrap_repetitions" value="200" step="1" min="1" style="width: 60px;"><label for="bootstrap_repetitions"> <span style="font-weight: normal;">Bootstrapping repetitions (for calculation of errors)</span></label> </li>
+        <li>
+            <label>Implementation method of Coefficient of coincidence:</label>
+                <div style="display: flex; flex-direction: column; gap: 5px; margin: 5px 0;">
+            <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                <input type="radio" name="analysis_type" value="mwhite" onchange="updateCoCTableHeading()">
+                1. Implementation by <a href="https://github.com/mwhite4/MADpatterns/blob/master/interval_analysis.m">M. White</a>
+            </label>
+            <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                <input type="radio" name="analysis_type" value="total_average" checked onchange="updateCoCTableHeading()">
+                2. Ratio of the observed and expected number of COs with a certain interval distance.
+            </label>
+            <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
+                <input type="radio" name="analysis_type" value="mernst" onchange="updateCoCTableHeading()">
+                3. Implementation from <a href="https://doi.org/10.1038/s41467-024-53054-2">Ernst et al. (2024)</a>.
+            </label>
+        </div>
         </li>
         
-        </li>
-        <li><input type="number" id="number_of_intervals" value="15" step="1" min="1" style="width: 60px;"><label for="number_of_intervals"> Number of intervals</label> </li>
-        <li><input type="number" id="bootstrap_repetitions" value="200" step="1" min="1" style="width: 60px;"><label for="bootstrap_repetitions"> Bootstrapping repetitions</label> </li>
-        <li>
-            <label>Implementation of Coefficient of coincidence:</label>
-            <div style="display: flex; gap: 15px; margin: 5px 0;">
-                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
-                    <input type="radio" name="analysis_type" value="mwhite">
-                    Pre-Binning
-                </label>
-                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
-                    <input type="radio" name="analysis_type" value="total_average" checked>
-                    Total average
-                </label>
-                <label style="display: flex; align-items: center; gap: 3px; font-weight: normal;">
-                    <input type="radio" name="analysis_type" value="mernst">
-                    Post-Binning
-                </label>
-            </div>
-        </li>
-        <div class="misc_link">
-            <button type="button" onclick="shuffleInputData()" style="font-size: 0.8em; padding: 2px 6px; margin-right: 4px;">Shuffle</button>
-            <span>Randomize input by shuffling crossover positions </span>
-        </div>
         <li><input type="submit" value="Calculate quantities"></li>
     </ul>
     </form>
     <h2>Output</h2>
     <form id="output_form">
     <ul class="form">
-    <li>Several quantities below will be reported as mean ± standard error, where the standard error is determined using bootstrapping <span id="bootstrap_num">1000</span> times. Consequently, the standard error will change slightly with each calculation.</li>
+    <li>Several quantities below will be reported as mean ± standard error, whereas the standard error of the Coefficient of Coincidence (CoC) is shown as a shaded area. The standard error is determined using bootstrapping. Consequently, the standard error will change slightly with each calculation.
+    For the second implementation of the CoC curve, the number of observed and expected (in case of absent interference) CO pairs is given.
+    </li>
     <li><label for="output_Lint">Interference length:</label><input type="text" id="output_Lint" name="output_Lint" disabled></li>
-    <li><label for="output_data">Additional data:</label><textarea name="output_data" id="output_data" cols="60" rows="15" disabled></textarea></li>
+    <li><label for="output_data">Additional analysis:</label><textarea name="output_data" id="output_data" cols="60" rows="15" disabled></textarea></li>
     <div id='CoC_plot'></div>
     <div id='histogram'></div>
-    <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span style="font-weight: normal;">distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
+    <!-- <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span style="font-weight: normal;">distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li> -->
+    <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span id="CoC_label_text" style="font-weight: normal;">Distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error &emsp; &emsp; &emsp; &emsp; N_obs &emsp; N_exp </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
     </ul></form>
   </div>
 <!-- <script>document.getElementById("bootstrap_num").textContent = BOOTSTRAP_REPETITIONS.toString();</script> -->
