@@ -10,7 +10,7 @@ from jsrun import Runtime
 from measure_CO_interference import init_parameters, interference_length
 
 
-def test_Lint_example(js_code, rng):
+def test_Lint_example(js_code):
     """Test interference distance calculation for random data."""
     # run JS extracted from webpage
     with Runtime() as runtime:
