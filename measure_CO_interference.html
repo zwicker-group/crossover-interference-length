@@ -88,6 +88,7 @@ select
 }
 </style>
 <script src='https://cdn.plot.ly/plotly-2.29.1.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // load local plotly.js if CDN was not available
  if (typeof Plotly === 'undefined') {
@@ -450,9 +451,9 @@ function calcCoC_total_average(positions, length, number_of_intervals, compute_s
         dists[d] = d * length / number_of_intervals;
     }
     if (compute_sample_sizes) {
-        return [dists, coc, observed_event_frequency, expected_event_frequency];    
+        return [dists.subarray(1), coc.subarray(1), observed_event_frequency, expected_event_frequency];    
     } else {
-        return [dists, coc];
+        return [dists.subarray(1), coc.subarray(1)];
     }
     
 }
@@ -541,12 +542,11 @@ function calcQuantities() {
     // read data
     const length = parseFloat(document.getElementById("length").value);
     const positions = parseCSV(document.getElementById("data").value, length);
+    const unit = document.getElementById("unit").value;
     const number_of_intervals = parseInt(document.getElementById("number_of_intervals").value);
     const bootstrap_repetitions = parseInt(document.getElementById("bootstrap_repetitions").value);
     const observed_distances = getDistances(positions);
     const expected_distances = getExpectedDistances(positions);
-    const observed_event_frequency = getHistogram(observed_distances.flat(), length, number_of_intervals);
-    const expected_event_frequency = getHistogram(expected_distances, length, number_of_intervals);
     const scale_factor = (document.querySelector('input[name="data_type"][value="genetic_data"]').checked ? 2 : 1);
     const selectedAnalysis = document.querySelector('input[name="analysis_type"]:checked').value;
 
@@ -558,18 +558,18 @@ function calcQuantities() {
     let LintNorm = `${format(result["LintNorm"])} ± ${format(LintNormErr)}`;
 
     // set output
-    document.getElementById("output_Lint").value = Lint;
+    document.getElementById("output_Lint").value = `${Lint} ${unit}`;
     document.getElementById("output_data").value =
-        `Chromosome length: L = ${length}
+        `Chromosome length: L = ${length} ${unit}
 Number of samples: n = ${result["samples"]}
 Average CO count: N = ${format(result["countMean"])} ± ${format(result["countStd"])}
 Average number of CO pairs: N_pairs = ${format(result["pairMean"])} ± ${format(result["pairStd"])}
-Interference length: L_int = ${Lint}
+Interference length: L_int = ${Lint} ${unit}
 Normalized interference length: L_int * N / L = ${LintNorm}
 
-Mean observed distance: d_Obs = ${format(result["dObs"])}
-Average CO distance (observed): d_Int = ${format(result["dInt"])}
-Average CO distance (no interference): d_noInt = ${format(result["dnoInt"])}
+Mean observed distance: d_Obs = ${format(result["dObs"])} ${unit}
+Average CO distance (observed): d_Int = ${format(result["dInt"])} ${unit}
+Average CO distance (no interference): d_noInt = ${format(result["dnoInt"])} ${unit}
 Average number of observed CO pairs: N^pair_obs = ${format(result["numPairsObs"])}
 Average number of expected CO pairs: N^pair_noInt = ${format(result["numPairsNoInt"])}
 Ratio of observed to expected CO pairs: N^pair_obs / N^pair_noInt = ${format(result["numPairsObs"] / result["numPairsNoInt"])}
@@ -618,9 +618,9 @@ Scale factor for sub-sampling: ${scale_factor}`;
     };
     let CoC_curve = {"x": CoC_x, "y": CoC_y, "type": "scatter", "name": "CoC Curve", "color": "rgba(99, 110, 250, 0.3)"};
     let Lint_label = {"x": [0], "y": [0], mode: "lines", line: {color: '#116656', width: 3}, name: "Lint"};
-    let layout = {
-        title: {text: 'Coefficient of coincidence plot', y: 0.85},
-        xaxis: {title: 'Inter-CO Distance', range: [0, 'auto']},
+    let layout_coc = {
+        title: {text: 'Coefficient of coincidence', y: 0.85},
+        xaxis: {title: `Inter-CO Distance [${unit}]`, range: [0, 'auto']},
         yaxis: {title: 'Coefficient of coincidence', range: [0, 'auto']},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
@@ -630,21 +630,34 @@ Scale factor for sub-sampling: ${scale_factor}`;
             {type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 1, y1: 1, line: {color: 'black', width: 0.5}},
         ],
     };
-    Plotly.newPlot('CoC_plot', [CoC_curve, Lint_label, CoC_error_band], layout);
+    Plotly.newPlot('CoC_plot', [CoC_curve, Lint_label, CoC_error_band], layout_coc);
 
-    // Plot histogram
+    // Plot histogram of Inter-CO distances
     let hist_expected = {x: expected_distances, type: "histogram", opacity: 0.5, marker: {color: 'gray'}, name: "No interference", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
     let hist_observed = {x: observed_distances.flat(), type: "histogram", opacity: 0.5, marker: {color: 'green'}, name: "Observed", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
 
   
     let layout_hist = {title: {text: 'Histogram of Inter-CO distances', y: 0.85},
-        xaxis: {title: 'Inter-CO Distance', range: [0, length]},
-        yaxis: {title: 'Frequency', range: [0, 'auto']},
+        xaxis: {title: `Inter-CO Distance [${unit}]`, range: [0, length]},
+        yaxis: {title: 'Probability density', range: [0, 'auto']},
         paper_bgcolor:'rgba(0,0,0,0)',
         plot_bgcolor:'rgba(0,0,0,0)',
         showlegend: true,
     };
     Plotly.newPlot('histogram', [hist_expected, hist_observed], layout_hist);
+
+    // Plot histogram  
+    let hist_positions = {x: positions.flat(), type: "histogram", opacity: 0.5, marker: {color: 'green'}, histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
+
+  
+    let layout_hist_pos = {title: {text: 'Histogram of CO positions', y: 0.85},
+        xaxis: {title: `CO Positions [${unit}]`, range: [0, length]},
+        yaxis: {title: 'Frequency', range: [0, 'auto']},
+        paper_bgcolor:'rgba(0,0,0,0)',
+        plot_bgcolor:'rgba(0,0,0,0)',
+        showlegend: false,
+    };
+    Plotly.newPlot('histogram_positions', [hist_positions], layout_hist_pos);
 }
 
 
@@ -661,6 +674,7 @@ function updateCoCTableHeading() {
 
 function loadExample() {
     document.getElementById("length").value = EXAMPLE_LENGTH;
+    document.getElementById("unit").value = "Mb";
     document.getElementById("data").value = EXAMPLE_POSITIONS.replaceAll(";", "\n");
     document.querySelector('input[name="data_type"][value="genetic_data"]').checked = true;
 }
@@ -679,7 +693,14 @@ document.addEventListener('DOMContentLoaded', updateCoCTableHeading);
     <h2>Input</h2>
     <form id="input_form" action="javascript:calcQuantities()">
     <ul class="form">
-        <li><input type="text" id="length" name="length" value="1" required style="width: 80px;"><label for="length"> Chromosome length <span style="font-weight: normal;">(arbitrary unit)</span></label> </li>
+        <li style="display: flex; align-items: center; gap: 10px;">
+    <input type="text" id="length" name="length" value="1" required style="width: 80px;">
+    <label for="length">Chromosome length</label>
+    <input type="text" id="unit" name="unit" value="Mb" required style="width: 40px;">
+    <label for="unit">Unit</label>
+    </li>
+        <!-- <li><input type="text" id="length" name="length" value="1" required style="width: 80px;"><label for="length"> Chromosome length </label> </li> -->
+        <!-- <li><input type="text" id="unit" name="unit" value="Mb" required style="width: 60px;"><label for="length"> Unit</label> </li> -->
         <li><label for="data">Observed crossover positions: <br/><span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <!-- <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li> -->
@@ -738,6 +759,7 @@ document.addEventListener('DOMContentLoaded', updateCoCTableHeading);
     <li><label for="output_data">Additional analysis:</label><textarea name="output_data" id="output_data" cols="60" rows="15" disabled></textarea></li>
     <div id='CoC_plot'></div>
     <div id='histogram'></div>
+    <div id='histogram_positions'></div>
     <!-- <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span style="font-weight: normal;">distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li> -->
     <li><label for="CoC_data">Coefficient of Coincidence (CoC):<br /><span id="CoC_label_text" style="font-weight: normal;">Distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp;  CoC error &emsp; &emsp; &emsp; &emsp; N_obs &emsp; N_exp </span></label><textarea name="CoC_data" id="CoC_data" cols="60" rows="15" disabled></textarea></li>
     </ul></form>
