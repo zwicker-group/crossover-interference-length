@@ -104,10 +104,13 @@ function parseCSV(csv_string, factor=1) {
     // The function also checks whether the values are in the interval [0, 1]
     var warnedNaN = false, warnedValue = false;
     var positions = [];
-    for (let line of csv_string.trim().split("\n")) {
+    for (let line of csv_string.split("\n")) {
         var sample = [];
         for (let element of line.split(",")) {
             element_trimmed = element.trim();
+            if (element_trimmed.toLowerCase() === "none") {
+                continue;
+            }
             if (element_trimmed.length > 0 && element_trimmed != "") {
                 let value = parseFloat(element_trimmed);
                 if (!warnedNaN && isNaN(value)) {
@@ -701,7 +704,7 @@ document.addEventListener('DOMContentLoaded', updateCoCTableHeading);
     </li>
         <!-- <li><input type="text" id="length" name="length" value="1" required style="width: 80px;"><label for="length"> Chromosome length </label> </li> -->
         <!-- <li><input type="text" id="unit" name="unit" value="Mb" required style="width: 60px;"><label for="length"> Unit</label> </li> -->
-        <li><label for="data">Observed crossover positions: <br/><span style="font-weight: normal;">(comma-separated positions; one line per sample; positions normalized to chromosome length)</span></label><br/>
+        <li><label for="data">Observed crossover positions: <br/><span style="font-weight: normal;">(comma-separated positions; one line per sample (empty or "none"); positions normalized to chromosome length)</span></label><br/>
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <!-- <li><input type="checkbox" id="genetic_data" name="genetic_data"> <label for="genetic_data">Is genetic data <span style="font-weight: normal;">(Analysis will be corrected for 50% random sub-sampling)</span></label></li> -->
         <!-- <label>Source of data:</label> -->
