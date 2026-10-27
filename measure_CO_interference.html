@@ -757,7 +757,10 @@ document.addEventListener('DOMContentLoaded', updateCoCTableHeading);
         <input type="text" id="unit" name="unit" value="Mb" style="width: 40px;">
         <label for="unit">Unit</label>
         </li>
-        <li><label for="data">Observed crossover positions: <br/><span style="font-weight: normal;">(comma-separated positions; one line per sample (sample count is number of lines); CO positions (normalized to chromosome length) are denoted by comma-separated values; samples without COs should be empty lines or contain the text “none”)</span></label><br/>
+        <li><label for="data">Observed crossover positions: <br /><span style="font-weight: normal;">
+                    One line per sample (sample count is number of lines)<br />
+                    CO positions (normalized to chromosome length) are denoted by comma-separated values<br />
+                    Samples without COs should be empty lines or contain the text “none”</span></label><br />
 
         <textarea name="data" id="data" cols="60" rows="30"></textarea>
         <div style="display: flex; gap: 15px; margin: 5px 0;">
