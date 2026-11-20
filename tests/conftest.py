@@ -3,9 +3,9 @@
 .. codeauthor:: David Zwicker <david.zwicker@ds.mpg.de>
 """
 
+import json
 import shutil
 import subprocess
-import json
 from pathlib import Path
 
 import numpy as np
@@ -39,13 +39,25 @@ def get_js_code():
 
     # Parse the HTML content
     soup = BeautifulSoup(html_cont, "html.parser")
-    script = soup.find_all("script")[1].string
-    if not script:
-        msg = f"Could not read script file content `{soup}`"
-        raise RuntimeError(msg)
+
+    lines = []
+    for script in soup.find_all("script"):
+        # Ignore imported/external JavaScript files.
+        if script.get("src") is not None:
+            continue
+
+        # `script.string` can be None in some HTML documents, so use get_text().
+        code = script.get_text()
+
+        if code.strip():
+            lines.extend(code.strip().split("\n"))
 
     # remove plotly loading from the first lines and the document setup in the last lines
-    lines = script.split("\n")[6:-3]
+    lines = lines[5:-2]
+
+    if not lines:
+        msg = f"Could not read script file content `{soup}`"
+        raise RuntimeError(msg)
 
     # add module exports
     lines.extend(
