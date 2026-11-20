@@ -185,8 +185,6 @@ function getDistances(positions) {
     return distances;
 }
 
-
-
 function getExpectedDistances(positions) {
     const posFlat = new Float32Array(positions.flat());
     const sample_size = 4500000;
@@ -242,7 +240,6 @@ function shuffleInputData() {
     document.getElementById("data").value = posCSV;
 }
 
-
 function getDnoInt(positions) {
     // estimate the distance of the null hypothesis
     const posFlat = new Float64Array(positions.flat());
@@ -274,7 +271,6 @@ function getDnoInt(positions) {
     return dnoInt;
 }
 
-
 function getHistogram(flat_data, length, number_of_intervals) {
     // Create histogram for data ranging from 0 to 1 with a given number of intervals.
     const frequency = new Float32Array(number_of_intervals).fill(0);
@@ -284,9 +280,9 @@ function getHistogram(flat_data, length, number_of_intervals) {
     for (let i = 0; i <= number_of_intervals; i++) {
         binEdges[i] = binWidth * i;
     }
-    
+
     for (let i=0; i<sample_size; i++) {
-        value = flat_data[i]
+        let value = flat_data[i]
         // if (isNaN(value)) continue;
         for (let i = 0; i < number_of_intervals; i++) {
             if (value >= binEdges[i] && value < binEdges[i + 1]) {
@@ -361,7 +357,6 @@ function calcInterferenceLengthErr(positions, length, bootstrap_repetitions) {
     return Math.sqrt(mean2 / (2 * bootstrap_repetitions));
 }
 
-
 function calcCoC_mwhite(positions, length, number_of_intervals) {
     // calculate the coefficient of coincidence curve
     // Implementation based on the approach in https://github.com/mwhite4/MADpatterns/blob/master/interval_analysis.m
@@ -373,7 +368,7 @@ function calcCoC_mwhite(positions, length, number_of_intervals) {
     var sample_idx = 0;
     for (let sample of positions) {
         for (let i = 0; i < sample.length; i++) {
-            ni = Math.floor(sample[i] / length * number_of_intervals);
+            let ni = Math.floor(sample[i] / length * number_of_intervals);
             pattern_per_interval[sample_idx][ni] = 1.0;
         }
         for (let i = 0; i < number_of_intervals; i++) {
@@ -392,11 +387,11 @@ function calcCoC_mwhite(positions, length, number_of_intervals) {
     for (let i=0; i<number_of_intervals; i++) {
         dists[i] = i * length / number_of_intervals;
         for (let j=i+1; j<number_of_intervals; j++) {
-            d = Math.abs(j - i);
-            rAB = observed_pattern_frequency_per_distance[i][d];
+            let d = Math.abs(j - i);
+            let rAB = observed_pattern_frequency_per_distance[i][d];
             if (rAB > 0) {
-                rA = observed_pattern_frequency_per_interval[i];
-                rB = observed_pattern_frequency_per_interval[j];
+                let rA = observed_pattern_frequency_per_interval[i];
+                let rB = observed_pattern_frequency_per_interval[j];
                 coc[d] += rAB / rA / rB;
             }
             n[d]++;
@@ -424,7 +419,7 @@ function calcCoC_total_average(positions, length, number_of_intervals, compute_s
     var sample_idx = 0;
     for (let sample of positions) {
         for (let i = 0; i < sample.length; i++) {
-            ni = Math.floor(sample[i] / length * number_of_intervals);
+            let ni = Math.floor(sample[i] / length * number_of_intervals);
             event_per_interval[sample_idx][ni] += 1.0;
         }
         for (let i = 0; i < number_of_intervals; i++) {
@@ -436,7 +431,7 @@ function calcCoC_total_average(positions, length, number_of_intervals, compute_s
         }
         sample_idx++;
     }
-    
+
     for (let i = 0; i < number_of_intervals; i++) {
         for (let j = i; j < number_of_intervals; j++) {
             expected_event_frequency_per_distance[i][j - i] = observed_event_frequency_per_interval[i] * observed_event_frequency_per_interval[j] / sample_size;
@@ -455,7 +450,7 @@ function calcCoC_total_average(positions, length, number_of_intervals, compute_s
     } else {
         return [dists, coc];
     }
-    
+
 }
 
 
@@ -471,7 +466,7 @@ function calcCoC_mernst(positions, length, number_of_intervals) {
     const expected_event_frequency = getHistogram(expected_distances, length, number_of_intervals);
     let dists = new Float32Array(number_of_intervals);
     let coc = new Float32Array(number_of_intervals);
-    
+
     const [countMean, countStd] = arrayStats(positions);
     const [pairMean, pairStd] = arrayStats(observed_distances);
     const numPairsNoInt = 0.5 * countMean ** 2;
@@ -584,7 +579,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
     } else {
         [CoC_x, CoC_y, CoC_y_error] = calcCoCErr(positions, length, number_of_intervals, selectedAnalysis, bootstrap_repetitions);    
     }
-    
+
     console.log(CoC_x, selectedAnalysis);
     for (let i=0; i < CoC_x.length; i++) {
         if (selectedAnalysis == 'total_average') {
@@ -596,7 +591,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
     document.getElementById("CoC_data").value = CoC_data.join("\n").replace(/\n$/, "");;
 
     // plot CoC curve
-    
+
     let CoC_upper = new Float32Array(CoC_x.length).fill(0);
     let CoC_lower = new Float32Array(CoC_x.length).fill(0);
     // Create error band data
@@ -637,7 +632,6 @@ Scale factor for sub-sampling: ${scale_factor}`;
     let hist_expected = {x: expected_distances, type: "histogram", opacity: 0.5, marker: {color: 'gray'}, name: "No interference", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
     let hist_observed = {x: observed_distances.flat(), type: "histogram", opacity: 0.5, marker: {color: 'green'}, name: "Observed", histnorm: 'probability density', xbins: {start: 0, end: length, size: length/number_of_intervals}};
 
-  
     let layout_hist = {title: {text: 'Histogram of Inter-CO distances', y: 0.85},
         xaxis: {title: 'Inter-CO Distance', range: [0, length]},
         yaxis: {title: 'Frequency', range: [0, 'auto']},
@@ -652,7 +646,7 @@ Scale factor for sub-sampling: ${scale_factor}`;
 function updateCoCTableHeading() {
     const selectedAnalysis = document.querySelector('input[name="analysis_type"]:checked').value;
     const labelSpan = document.getElementById('CoC_label_text');
-    
+
     if (selectedAnalysis === 'total_average') {
         labelSpan.innerHTML = 'Distance &emsp; &emsp; &emsp; &emsp; CoC values &emsp; &emsp; &emsp; CoC error &emsp; &emsp; &emsp; &emsp; N_obs &emsp;  N_exp';
     } else {

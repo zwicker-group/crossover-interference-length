@@ -64,7 +64,7 @@ def get_js_code():
         [
             "",
             "// ES module exports",
-            "export { parseCSV, getDistances, calcInterferenceLength, getDnoInt, arrayStats, EXAMPLE_POSITIONS, EXAMPLE_LENGTH };",
+            "export { parseCSV, getDistances, calcInterferenceLength, calcCoC, getDnoInt, arrayStats, EXAMPLE_POSITIONS, EXAMPLE_LENGTH };",
         ]
     )
 
