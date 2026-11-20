@@ -25,31 +25,38 @@ def init_random_number_generators():
     return np.random.default_rng(0)
 
 
-# @pytest.fixture(scope="session")
 def get_js_code():
     """Extract javascript code from HTML file"""
     from bs4 import BeautifulSoup
 
     # Read HTML content from a file
-    with open(
-        PACKAGE_PATH / "measure_CO_interference.html", "r", encoding="utf-8"
-    ) as file:
+    path = PACKAGE_PATH / "measure_CO_interference.html"
+    with open(path, "r", encoding="utf-8") as file:
         html_cont = file.read()
+    if not html_cont:
+        msg = f"Could not read HTML file from `{path}`"
+        raise RuntimeError(msg)
 
     # Parse the HTML content
     soup = BeautifulSoup(html_cont, "html.parser")
     script = soup.find_all("script")[1].string
+    if not script:
+        msg = f"Could not read script file content `{soup}`"
+        raise RuntimeError(msg)
 
     # remove plotly loading from the first lines and the document setup in the last lines
-    return "\n".join(script.split("\n")[6:-3])
+    lines = script.split("\n")[6:-3]
 
+    # add module exports
+    lines.extend(
+        [
+            "",
+            "// ES module exports",
+            "export { parseCSV, getDistances, calcInterferenceLength, getDnoInt, arrayStats, EXAMPLE_POSITIONS, EXAMPLE_LENGTH };",
+        ]
+    )
 
-# @pytest.fixture(scope="session")
-# def js_file(js_code):
-#     with tempfile.NamedTemporaryFile(suffix=".js", mode="w") as jsfile:
-#         jsfile.write(js_code)
-#         jsfile.flush()
-#         yield jsfile.name
+    return "\n".join(lines)
 
 
 def pytest_configure(config):
@@ -58,12 +65,6 @@ def pytest_configure(config):
     path = PACKAGE_PATH / "tests" / "javascript" / "extracted_from_html.mjs"
     with path.open("w") as jsfile:
         jsfile.write(get_js_code())
-        # Add ES module exports for the extracted functions and constants
-        jsfile.write("""
-
-// ES module exports
-export { parseCSV, getDistances, calcInterferenceLength, getDnoInt, arrayStats, EXAMPLE_POSITIONS, EXAMPLE_LENGTH };
-""")
 
 
 def call_javascript(function_name: str, *args):
