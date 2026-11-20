@@ -1,2 +1,8 @@
 /.project
 /.pydevproject
+/Debug
+__pycache__
+.ruff_cache
+.vscode
+
+tests/javascript/extracted_from_html.mjs
