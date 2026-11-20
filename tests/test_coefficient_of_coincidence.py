@@ -50,7 +50,7 @@ def compare_coc_implementations(
 
     # Call JavaScript
     js_method = coc_method  # Method names should match between Python and JS
-    js_func_name = f"calcCoC{coc_method.replace('_', ' ').title().replace(' ', '')}"
+    js_func_name = f"calcCoC{js_method.replace('_', ' ').title().replace(' ', '')}"
     js_result = call_javascript(js_func_name, positions, length, num_intervals)
     # Convert None (from JSON null) to NaN
     js_coc_x = np.array(
@@ -85,6 +85,10 @@ def compare_coc_implementations(
         py_coc_x, py_coc_y = coefficient_of_coincidence_mernst(py_positions, parameters)
     else:
         raise ValueError(f"Unknown CoC method: {coc_method}")
+
+    # Python code includes the first point, which is not returned in javascript
+    py_coc_x, py_coc_y = py_coc_x[1:], py_coc_y[1:]
+    assert len(js_coc_y) == len(py_coc_y)
 
     # Compare results
     # CoC curves can have NaN values, so we compare only the valid points
