@@ -106,7 +106,7 @@ function parseCSV(csv_string, factor=1) {
     for (let line of csv_string.trim().split("\n")) {
         var sample = [];
         for (let element of line.split(",")) {
-            element_trimmed = element.trim();
+            let element_trimmed = element.trim();
             if (element_trimmed.length > 0 && element_trimmed != "") {
                 let value = parseFloat(element_trimmed);
                 if (!warnedNaN && isNaN(value)) {
@@ -331,6 +331,7 @@ function calcInterferenceLength(positions, distances, length, scale_factor = 1) 
 
     result["dObs"] = dObs;
     result["dInt"] = (numPairsObs * dObs + numPairsMis * length) / (numPairsObs + numPairsMis);
+    let Lint;
     if (numPairsObs > 0) {
         Lint = result["dInt"] - result["dnoInt"];
     } else if (numPairsNoInt > 0) {

@@ -42,6 +42,51 @@ def get_distance_distribution(data_positions: np.array, only_adjacent_crossover:
     return np.sort(distances)
 
 
+def _sample_all_pairs(data_flat: np.array) -> np.array:
+    """
+    Sample all unique pairs from a flat array of values (avoiding self-pairs).
+
+    Uses numpy to efficiently generate all pairs where i < j without nested loops.
+
+    :param data_flat: 1D array of crossover positions
+    :return: 2D array of shape (n_pairs, 2) with all unique pairs [i, j] where i < j
+    """
+    if len(data_flat) < 2:
+        return np.array([]).reshape(0, 2)
+
+    n = len(data_flat)
+    i_indices, j_indices = np.triu_indices(n, k=1)
+    return np.column_stack((data_flat[i_indices], data_flat[j_indices]))
+
+
+def _sample_random_pairs(data_flat: np.array, sample_size: int) -> np.array:
+    """
+    Randomly sample unique pairs from a flat array of values (avoiding self-pairs).
+
+    Matches the JavaScript implementation: ensures i < j to avoid self-pairs and duplicates.
+
+    :param data_flat: 1D array of crossover positions
+    :param sample_size: Number of pairs to sample
+    :return: 2D array of shape (sample_size, 2) with random unique pairs [i, j] where i < j
+    """
+    n = len(data_flat)
+    if n < 2:
+        return np.array([]).reshape(0, 2)
+
+    # Sample indices: i from [0, n) and j from [0, n-1)
+    i = np.random.randint(0, n, sample_size)
+    j = np.random.randint(0, n - 1, sample_size)
+
+    # Adjust j to skip self-pairs: if j >= i, increment it
+    j = np.where(j >= i, j + 1, j)
+
+    # Ensure i < j by swapping as needed
+    i, j = np.minimum(i, j), np.maximum(i, j)
+
+    # Return pairs using advanced indexing
+    return np.column_stack((data_flat[i], data_flat[j]))
+
+
 def get_expected_distances(data_positions: np.array, parameters: dict, only_adjacent_crossover: bool = False):
     """
     Return a sorted 1D array with the expected distribution of distances between observed crossover positions.
@@ -67,13 +112,17 @@ def get_expected_distances(data_positions: np.array, parameters: dict, only_adja
         distances_expected = get_distance_distribution(data_choice, only_adjacent_crossover=True)
     else:
         if len(data_flat) < np.sqrt(parameters['MAX_SIZE']):
-            possible_pairs = np.array(list(product(data_flat, data_flat)))  # get all possible pairs of crossovers
+            possible_pairs = _sample_all_pairs(data_flat)
         else:
-            # If the number of possible pairs of crossover positions is larger than a certain threshold
-            # we randomly choose expected pairs from the possible pairs.
-            possible_pairs = np.sort(np.random.choice(data_flat, (parameters['MAX_SIZE'], 2)), axis=1)
-        distances_expected = np.abs(possible_pairs[:, 1] - possible_pairs[:, 0])
-        distances_expected = distances_expected[distances_expected > 0]  # Delete cases with 0 distance
+            # Sample randomly if too many pairs
+            possible_pairs = _sample_random_pairs(
+                data_flat, int(parameters["MAX_SIZE"])
+            )
+
+        if len(possible_pairs) > 0:
+            distances_expected = np.abs(possible_pairs[:, 1] - possible_pairs[:, 0])
+        else:
+            distances_expected = np.array([])
     return np.sort(distances_expected)
 
 
